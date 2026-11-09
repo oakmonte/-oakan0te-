@@ -23,6 +23,9 @@ type OrderView = {
   deliveryKobo: number;
   totalKobo: number;
   courierName: string | null;
+  selfDelivered: boolean;
+  deliveryTopUp: { amountKobo: number; status: "pending" | "paid" | "refunded" } | null;
+  canPayTopUp: boolean;
   trackingUrl: string | null;
   storeName: string | null;
   sellerUsername: string | null;
@@ -62,6 +65,13 @@ const STATUS: Record<string, { title: string; note: string }> = {
   delivered: { title: "Delivered", note: "Your order has arrived. Enjoy it." },
   declined: { title: "Declined", note: "The seller couldn't fulfil this order." },
   cancelled: { title: "Cancelled", note: "This order was cancelled." },
+};
+
+// The seller delivering it themselves instead of a courier.
+const SELF_DELIVERY_NOTE: Record<string, string> = {
+  paid: "The seller is getting your order ready and will deliver it themselves.",
+  shipped:
+    "The seller is delivering this themselves. Once it reaches you, tap I've received it below.",
 };
 
 function OrderPage() {
@@ -112,7 +122,40 @@ function OrderPage() {
     };
   }, [orderId, t, userId, sessionLoading, attempt]);
 
-  const status = order ? (STATUS[order.status] ?? { title: order.status, note: "" }) : null;
+  const baseStatus = order ? (STATUS[order.status] ?? { title: order.status, note: "" }) : null;
+  const status =
+    order && baseStatus && order.selfDelivered && SELF_DELIVERY_NOTE[order.status]
+      ? { ...baseStatus, note: SELF_DELIVERY_NOTE[order.status] }
+      : baseStatus;
+
+  // The extra delivery fee a self-delivering seller asked for: off to
+  // Paystack, back to this page, which settles it on load.
+  const [payingTopUp, setPayingTopUp] = useState(false);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
+  async function payTopUp() {
+    setPayingTopUp(true);
+    setTopUpError(null);
+    let leaving = false;
+    try {
+      const res = await authedFetch(
+        `/api/orders/${orderId}/delivery-fee${t ? `?t=${encodeURIComponent(t)}` : ""}`,
+        { method: "POST" },
+      );
+      const body = (await res.json().catch(() => null)) as {
+        authorizationUrl?: string;
+        error?: string;
+      } | null;
+      if (!res.ok || !body?.authorizationUrl) {
+        throw new Error(body?.error ?? "Couldn't open the payment. Try again.");
+      }
+      leaving = true;
+      window.location.assign(body.authorizationUrl);
+    } catch (err) {
+      setTopUpError(err instanceof Error ? err.message : "Couldn't open the payment.");
+    } finally {
+      if (!leaving) setPayingTopUp(false);
+    }
+  }
 
   // "I've received it": marks the order delivered, which pays the seller
   // (delivery-release.server.ts). Without a tap it's released automatically
@@ -247,6 +290,33 @@ function OrderPage() {
                 )}
               </Card>
 
+              {order.deliveryTopUp?.status === "pending" && order.canPayTopUp && (
+                <Card title="Extra delivery fee">
+                  <p className="text-[15px] leading-relaxed">
+                    {order.storeName ?? "The seller"} is delivering this themselves and has asked
+                    for {nairaFromKobo(order.deliveryTopUp.amountKobo)} more for delivery.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void payTopUp()}
+                    disabled={payingTopUp}
+                    className="mt-3 flex h-11 w-full items-center justify-center rounded-full bg-chat-text text-[15px] font-semibold text-chat-inverse active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {payingTopUp
+                      ? "Opening payment…"
+                      : `Pay ${nairaFromKobo(order.deliveryTopUp.amountKobo)}`}
+                  </button>
+                  {topUpError && (
+                    <p className="mt-2 text-center text-[13px] text-chat-muted">{topUpError}</p>
+                  )}
+                  {order.sellerUsername && (
+                    <p className="mt-2 text-[13px] leading-relaxed text-chat-muted">
+                      Not sure about it? Message the seller before you pay.
+                    </p>
+                  )}
+                </Card>
+              )}
+
               {order.declineReason && (
                 <Card title="The seller's reason">
                   <p className="text-[15px] leading-relaxed">{order.declineReason}</p>
@@ -299,7 +369,14 @@ function OrderPage() {
                   ))}
                 </div>
                 <div className="mt-3 flex justify-between border-t border-chat-border pt-3 text-[14px] text-chat-muted">
-                  <span>Delivery{order.courierName ? ` (${order.courierName})` : ""}</span>
+                  <span>
+                    Delivery
+                    {order.selfDelivered
+                      ? " (by the seller)"
+                      : order.courierName
+                        ? ` (${order.courierName})`
+                        : ""}
+                  </span>
                   <span className="tabular-nums">{nairaFromKobo(order.deliveryKobo)}</span>
                 </div>
                 <div className="mt-1.5 flex justify-between text-[16px] font-semibold">

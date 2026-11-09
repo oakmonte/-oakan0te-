@@ -1,5 +1,7 @@
 import { markOfferUsed } from "@/lib/offers.server";
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
+import { applyTopUpPayment } from "@/lib/delivery-topup.server";
+import { isTopUpReference } from "@/lib/self-delivery";
 
 // Settles an order from a confirmed Paystack payment. Called from the signed
 // webhook and from the return-page verify; both can fire for one payment, so
@@ -12,7 +14,7 @@ export async function settlePaystackPayment(input: {
 }): Promise<"settled" | "already" | "mismatch" | "unknown"> {
   const { data: payment } = await supabaseAdmin
     .from("order_payments")
-    .select("id, order_id, amount_kobo, status")
+    .select("id, order_id, amount_kobo, status, reference")
     .eq("method", "paystack")
     .eq("reference", input.reference)
     .maybeSingle();
@@ -36,6 +38,13 @@ export async function settlePaystackPayment(input: {
     .eq("status", "pending")
     .select("id");
   if (!claimed?.length) return "already";
+
+  // Extra delivery money a self-delivering seller asked for after checkout:
+  // the order is already paid and its stock already taken.
+  if (isTopUpReference(payment.reference)) {
+    await applyTopUpPayment({ ...payment, reference: payment.reference ?? input.reference });
+    return "settled";
+  }
 
   await supabaseAdmin
     .from("orders")

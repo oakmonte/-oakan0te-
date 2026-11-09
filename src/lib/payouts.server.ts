@@ -6,7 +6,7 @@ import {
   initiateTransfer,
   paystackConfigured,
 } from "@/lib/paystack.server";
-import { COMMISSION_RATE, PAYSTACK_RATE } from "@/lib/pricing-fees";
+import { sellerPayoutKobo } from "@/lib/self-delivery";
 
 // Oakmonte holds every payment until delivery is confirmed. Then, and only
 // then, the seller's share is written to payout_ledger and sent by Paystack
@@ -16,13 +16,6 @@ import { COMMISSION_RATE, PAYSTACK_RATE } from "@/lib/pricing-fees";
 
 const REF_PREFIX = "payout-";
 
-/** The seller's share of an order: the items, less the 4.5% (commission +
- *  Paystack). Delivery is the courier's money, not the seller's. Rounded down
- *  to the kobo -- never pay out more than was taken. */
-export function sellerShareKobo(itemsTotalKobo: number): number {
-  return Math.floor(itemsTotalKobo * (1 - COMMISSION_RATE - PAYSTACK_RATE));
-}
-
 /** Call once per order, from whoever confirmed the delivery -- and only after
  *  winning the status change to "delivered", so two confirmations can't both
  *  get here. Never throws: a payout that can't go out stays owed, with a note
@@ -31,7 +24,7 @@ export async function payOutOrder(orderId: string): Promise<void> {
   try {
     const { data: order } = await supabaseAdmin
       .from("orders")
-      .select("id, store_id, items_total_kobo, status")
+      .select("id, store_id, items_total_kobo, delivery_fee_kobo, delivery_method, status")
       .eq("id", orderId)
       .maybeSingle();
     if (!order || order.status !== "delivered") return;
@@ -50,7 +43,13 @@ export async function payOutOrder(orderId: string): Promise<void> {
         order_id: orderId,
         kind: "seller",
         store_id: order.store_id,
-        amount_kobo: sellerShareKobo(order.items_total_kobo),
+        // The seller's share (see sellerPayoutKobo): the delivery fee is
+        // theirs too when they delivered it themselves.
+        amount_kobo: sellerPayoutKobo({
+          itemsKobo: order.items_total_kobo,
+          deliveryKobo: order.delivery_fee_kobo,
+          deliveryMethod: order.delivery_method,
+        }),
         status: "owed",
       })
       .select("id, amount_kobo")

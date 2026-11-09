@@ -144,6 +144,7 @@ import { Route as StoreProductsIdRouteImport } from './routes/store.products_.$i
 import { Route as StoreProductsNewRouteImport } from './routes/store.products_.new'
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
+import { Route as ApiOrdersOrderIdDeliveryFeeRouteImport } from './routes/api.orders.$orderId.delivery-fee'
 import { Route as ApiOrdersOrderIdReceivedRouteImport } from './routes/api.orders.$orderId.received'
 import { Route as ApiStaffSupportUserIdRouteImport } from './routes/api.staff.support.$userId'
 import { Route as ApiStaffUsersUserIdRouteImport } from './routes/api.staff.users.$userId'
@@ -151,6 +152,7 @@ import { Route as ApiStoreLocationsVerifyRouteImport } from './routes/api.store.
 import { Route as ApiStoreOffersOfferIdRouteImport } from './routes/api.store.offers.$offerId'
 import { Route as ApiStoreOrdersOrderIdRouteImport } from './routes/api.store.orders.$orderId'
 import { Route as ApiStoreOrdersOrderIdDeclineRouteImport } from './routes/api.store.orders.$orderId.decline'
+import { Route as ApiStoreOrdersOrderIdSelfDeliverRouteImport } from './routes/api.store.orders.$orderId.self-deliver'
 import { Route as ApiStoreOrdersOrderIdShipRouteImport } from './routes/api.store.orders.$orderId.ship'
 
 const IndexRoute = IndexRouteImport.update({
@@ -832,6 +834,12 @@ const StoreProductsUploadRoute = StoreProductsUploadRouteImport.update({
   path: '/products/upload',
   getParentRoute: () => StoreRoute,
 } as any)
+const ApiOrdersOrderIdDeliveryFeeRoute =
+  ApiOrdersOrderIdDeliveryFeeRouteImport.update({
+    id: '/delivery-fee',
+    path: '/delivery-fee',
+    getParentRoute: () => ApiOrdersOrderIdRoute,
+  } as any)
 const ApiOrdersOrderIdReceivedRoute =
   ApiOrdersOrderIdReceivedRouteImport.update({
     id: '/received',
@@ -867,6 +875,12 @@ const ApiStoreOrdersOrderIdDeclineRoute =
   ApiStoreOrdersOrderIdDeclineRouteImport.update({
     id: '/decline',
     path: '/decline',
+    getParentRoute: () => ApiStoreOrdersOrderIdRoute,
+  } as any)
+const ApiStoreOrdersOrderIdSelfDeliverRoute =
+  ApiStoreOrdersOrderIdSelfDeliverRouteImport.update({
+    id: '/self-deliver',
+    path: '/self-deliver',
     getParentRoute: () => ApiStoreOrdersOrderIdRoute,
   } as any)
 const ApiStoreOrdersOrderIdShipRoute =
@@ -1012,6 +1026,7 @@ export interface FileRoutesByFullPath {
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/staff/users/': typeof StaffUsersIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/orders/$orderId/delivery-fee': typeof ApiOrdersOrderIdDeliveryFeeRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/staff/support/$userId': typeof ApiStaffSupportUserIdRoute
   '/api/staff/users/$userId': typeof ApiStaffUsersUserIdRoute
@@ -1019,6 +1034,7 @@ export interface FileRoutesByFullPath {
   '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
+  '/api/store/orders/$orderId/self-deliver': typeof ApiStoreOrdersOrderIdSelfDeliverRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRoutesByTo {
@@ -1153,6 +1169,7 @@ export interface FileRoutesByTo {
   '/create/after-shot': typeof CreateAfterShotIndexRoute
   '/staff/users': typeof StaffUsersIndexRoute
   '/store/playlists': typeof StorePlaylistsIndexRoute
+  '/api/orders/$orderId/delivery-fee': typeof ApiOrdersOrderIdDeliveryFeeRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/staff/support/$userId': typeof ApiStaffSupportUserIdRoute
   '/api/staff/users/$userId': typeof ApiStaffUsersUserIdRoute
@@ -1160,6 +1177,7 @@ export interface FileRoutesByTo {
   '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
+  '/api/store/orders/$orderId/self-deliver': typeof ApiStoreOrdersOrderIdSelfDeliverRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRoutesById {
@@ -1299,6 +1317,7 @@ export interface FileRoutesById {
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
   '/staff/users/': typeof StaffUsersIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
+  '/api/orders/$orderId/delivery-fee': typeof ApiOrdersOrderIdDeliveryFeeRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
   '/api/staff/support/$userId': typeof ApiStaffSupportUserIdRoute
   '/api/staff/users/$userId': typeof ApiStaffUsersUserIdRoute
@@ -1306,6 +1325,7 @@ export interface FileRoutesById {
   '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
   '/api/store/orders/$orderId/decline': typeof ApiStoreOrdersOrderIdDeclineRoute
+  '/api/store/orders/$orderId/self-deliver': typeof ApiStoreOrdersOrderIdSelfDeliverRoute
   '/api/store/orders/$orderId/ship': typeof ApiStoreOrdersOrderIdShipRoute
 }
 export interface FileRouteTypes {
@@ -1446,6 +1466,7 @@ export interface FileRouteTypes {
     | '/create/after-shot/'
     | '/staff/users/'
     | '/store/playlists/'
+    | '/api/orders/$orderId/delivery-fee'
     | '/api/orders/$orderId/received'
     | '/api/staff/support/$userId'
     | '/api/staff/users/$userId'
@@ -1453,6 +1474,7 @@ export interface FileRouteTypes {
     | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
+    | '/api/store/orders/$orderId/self-deliver'
     | '/api/store/orders/$orderId/ship'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1587,6 +1609,7 @@ export interface FileRouteTypes {
     | '/create/after-shot'
     | '/staff/users'
     | '/store/playlists'
+    | '/api/orders/$orderId/delivery-fee'
     | '/api/orders/$orderId/received'
     | '/api/staff/support/$userId'
     | '/api/staff/users/$userId'
@@ -1594,6 +1617,7 @@ export interface FileRouteTypes {
     | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
+    | '/api/store/orders/$orderId/self-deliver'
     | '/api/store/orders/$orderId/ship'
   id:
     | '__root__'
@@ -1732,6 +1756,7 @@ export interface FileRouteTypes {
     | '/create/after-shot/'
     | '/staff/users/'
     | '/store/playlists/'
+    | '/api/orders/$orderId/delivery-fee'
     | '/api/orders/$orderId/received'
     | '/api/staff/support/$userId'
     | '/api/staff/users/$userId'
@@ -1739,6 +1764,7 @@ export interface FileRouteTypes {
     | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
     | '/api/store/orders/$orderId/decline'
+    | '/api/store/orders/$orderId/self-deliver'
     | '/api/store/orders/$orderId/ship'
   fileRoutesById: FileRoutesById
 }
@@ -2788,6 +2814,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreProductsUploadRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/api/orders/$orderId/delivery-fee': {
+      id: '/api/orders/$orderId/delivery-fee'
+      path: '/delivery-fee'
+      fullPath: '/api/orders/$orderId/delivery-fee'
+      preLoaderRoute: typeof ApiOrdersOrderIdDeliveryFeeRouteImport
+      parentRoute: typeof ApiOrdersOrderIdRoute
+    }
     '/api/orders/$orderId/received': {
       id: '/api/orders/$orderId/received'
       path: '/received'
@@ -2835,6 +2868,13 @@ declare module '@tanstack/react-router' {
       path: '/decline'
       fullPath: '/api/store/orders/$orderId/decline'
       preLoaderRoute: typeof ApiStoreOrdersOrderIdDeclineRouteImport
+      parentRoute: typeof ApiStoreOrdersOrderIdRoute
+    }
+    '/api/store/orders/$orderId/self-deliver': {
+      id: '/api/store/orders/$orderId/self-deliver'
+      path: '/self-deliver'
+      fullPath: '/api/store/orders/$orderId/self-deliver'
+      preLoaderRoute: typeof ApiStoreOrdersOrderIdSelfDeliverRouteImport
       parentRoute: typeof ApiStoreOrdersOrderIdRoute
     }
     '/api/store/orders/$orderId/ship': {
@@ -2971,10 +3011,12 @@ const ApiOffersRouteWithChildren = ApiOffersRoute._addFileChildren(
 )
 
 interface ApiOrdersOrderIdRouteChildren {
+  ApiOrdersOrderIdDeliveryFeeRoute: typeof ApiOrdersOrderIdDeliveryFeeRoute
   ApiOrdersOrderIdReceivedRoute: typeof ApiOrdersOrderIdReceivedRoute
 }
 
 const ApiOrdersOrderIdRouteChildren: ApiOrdersOrderIdRouteChildren = {
+  ApiOrdersOrderIdDeliveryFeeRoute: ApiOrdersOrderIdDeliveryFeeRoute,
   ApiOrdersOrderIdReceivedRoute: ApiOrdersOrderIdReceivedRoute,
 }
 
@@ -3021,11 +3063,13 @@ const ApiStoreOffersRouteWithChildren = ApiStoreOffersRoute._addFileChildren(
 
 interface ApiStoreOrdersOrderIdRouteChildren {
   ApiStoreOrdersOrderIdDeclineRoute: typeof ApiStoreOrdersOrderIdDeclineRoute
+  ApiStoreOrdersOrderIdSelfDeliverRoute: typeof ApiStoreOrdersOrderIdSelfDeliverRoute
   ApiStoreOrdersOrderIdShipRoute: typeof ApiStoreOrdersOrderIdShipRoute
 }
 
 const ApiStoreOrdersOrderIdRouteChildren: ApiStoreOrdersOrderIdRouteChildren = {
   ApiStoreOrdersOrderIdDeclineRoute: ApiStoreOrdersOrderIdDeclineRoute,
+  ApiStoreOrdersOrderIdSelfDeliverRoute: ApiStoreOrdersOrderIdSelfDeliverRoute,
   ApiStoreOrdersOrderIdShipRoute: ApiStoreOrdersOrderIdShipRoute,
 }
 

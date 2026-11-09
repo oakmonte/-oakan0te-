@@ -5,6 +5,8 @@ import { listOrderEvents, loadOrderPayment } from "@/lib/order-events.server";
 import { buildTimeline, isOrderId, refundStateFor } from "@/lib/order-status";
 import { paystackConfigured } from "@/lib/paystack.server";
 import { planRefund } from "@/lib/refunds.server";
+import { loadTopUp } from "@/lib/delivery-topup.server";
+import { isSelfDelivered } from "@/lib/self-delivery";
 
 // One of the caller's own store's orders, with everything the seller's order
 // screen shows: items, who it goes to, delivery, money, the timeline and which
@@ -42,7 +44,7 @@ export const Route = createFileRoute("/api/store/orders/$orderId")({
         }
         if (!order) return json({ error: "Not found" }, 404);
 
-        const [{ data: items }, payment, events, { data: buyer }] = await Promise.all([
+        const [{ data: items }, payment, events, { data: buyer }, topUp] = await Promise.all([
           supabaseAdmin
             .from("order_items")
             .select("title, variant_label, image_url, unit_price_kobo, quantity")
@@ -56,7 +58,9 @@ export const Route = createFileRoute("/api/store/orders/$orderId")({
                 .eq("id", order.buyer_id)
                 .maybeSingle()
             : Promise.resolve({ data: null }),
+          loadTopUp(order.id),
         ]);
+        const selfDelivered = isSelfDelivered(order.delivery_method);
 
         const shipTo = (order.ship_to ?? {}) as { name?: string; phone?: string; address?: string };
         const open = order.status === "paid" && !order.shipbubble_order_id;
@@ -107,10 +111,20 @@ export const Route = createFileRoute("/api/store/orders/$orderId")({
             events,
           }),
           items: items ?? [],
-          canShip: open && hasCourier,
-          // Without courier details the order can still be turned down; it
-          // just can't be booked from here.
-          shipBlockedReason: open && !hasCourier ? "This order has no courier on it." : null,
+          selfDelivered,
+          // Extra delivery money asked of the buyer after checkout, if any.
+          deliveryTopUp: topUp,
+          canShip: open && hasCourier && !selfDelivered,
+          // Always open while it's waiting: no courier quote needed.
+          canDeliverMyself: open,
+          // One ask per order, and only before it's sent.
+          canRequestFee: open && !topUp,
+          // Without courier details it can still be delivered by hand or
+          // turned down; it just can't be booked from here.
+          shipBlockedReason:
+            open && !hasCourier && !selfDelivered
+              ? "This order has no courier quote, so deliver it yourself or decline it."
+              : null,
           canDecline: open,
           // How a decline would return the money, so the confirm sheet can say
           // so before the seller commits rather than after.

@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Copy, MessageCircle, Phone } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { DeclineOrderSheet } from "@/components/orders/DeclineOrderSheet";
+import { SelfDeliverySheet } from "@/components/orders/SelfDeliverySheet";
 import { OrderTimeline, StatusChip } from "@/components/orders/order-ui";
 import { useOverlayHistory } from "@/hooks/use-overlay-history";
 import { authedFetch } from "@/lib/authed-fetch";
@@ -10,15 +11,21 @@ import { formatOrderTime, nairaFromKobo } from "@/lib/order-format";
 import { orderRef, type RefundState, type TimelineStep } from "@/lib/order-status";
 import { DesktopPanel } from "@/components/store/DesktopPanel";
 import { useHideStoreNav } from "@/components/store/store-nav";
+import { AUTO_RELEASE_DAYS } from "@/lib/self-delivery";
 
 // One order, from the seller's side: what to send, where, the money, what has
-// happened so far, and the two things they can still do while it's paid and
-// unshipped -- book the courier, or decline it.
+// happened so far, and what they can still do while it's paid and unsent --
+// book the courier, deliver it themselves (optionally asking the buyer for
+// more delivery money first), or decline it.
 //
 // A sub-route rather than a sheet over the list so an order has a URL of its
 // own (to come back to, or for a future "new order" notification to open).
 // Trailing underscore: it sits in the /store layout but not inside the list.
 export const Route = createFileRoute("/store/orders_/$orderId")({
+  // ?deliver=true: opened from the list's "Deliver myself", so the
+  // self-delivery sheet comes up as soon as the order loads.
+  validateSearch: (search: Record<string, unknown>): { deliver?: boolean } =>
+    search.deliver === true || search.deliver === "true" ? { deliver: true } : {},
   component: StoreOrderPage,
 });
 
@@ -53,7 +60,11 @@ type Detail = {
     unit_price_kobo: number;
     quantity: number;
   }[];
+  selfDelivered: boolean;
+  deliveryTopUp: { amountKobo: number; status: "pending" | "paid" | "refunded" } | null;
   canShip: boolean;
+  canDeliverMyself: boolean;
+  canRequestFee: boolean;
   shipBlockedReason: string | null;
   canDecline: boolean;
   declineRefund: "paystack" | "manual" | "none" | null;
@@ -62,24 +73,43 @@ type Detail = {
 const HEADLINE: Record<string, { title: string; note: (o: Detail) => string }> = {
   paid: {
     title: "Ready to ship",
-    note: () => "The buyer has paid. Book the courier to send it on its way.",
+    note: (o) => {
+      if (!o.selfDelivered) {
+        return "The buyer has paid. Book the courier, or deliver it yourself.";
+      }
+      const extra = o.deliveryTopUp ? nairaFromKobo(o.deliveryTopUp.amountKobo) : null;
+      if (o.deliveryTopUp?.status === "pending") {
+        return `You're delivering this one. You asked the buyer for ${extra} more for delivery; they haven't paid it yet. Send it when you're ready.`;
+      }
+      if (o.deliveryTopUp?.status === "paid") {
+        return `You're delivering this one. The buyer paid the extra ${extra} for delivery. Mark it on its way when you send it.`;
+      }
+      return "You're delivering this one. Mark it on its way when you send it.";
+    },
   },
   shipped: {
     title: "On its way",
     note: (o) =>
-      `Handed to ${o.courierName ?? "the courier"}. It moves to Delivered once they confirm.`,
+      o.selfDelivered
+        ? `You're delivering it. It moves to Delivered, and your payout goes out, when the buyer confirms they've got it, or automatically ${AUTO_RELEASE_DAYS} days after you sent it.`
+        : `Handed to ${o.courierName ?? "the courier"}. It moves to Delivered once they confirm.`,
   },
-  delivered: { title: "Delivered", note: () => "The courier confirmed delivery." },
+  delivered: {
+    title: "Delivered",
+    note: (o) =>
+      o.selfDelivered ? "Delivered, and your payout released." : "The courier confirmed delivery.",
+  },
   declined: { title: "Declined", note: () => "You turned this order down." },
   cancelled: { title: "Cancelled", note: () => "This order was cancelled." },
 };
 
 function StoreOrderPage() {
   const { orderId } = Route.useParams();
+  const { deliver } = Route.useSearch();
   // undefined = loading, null = not this store's (or not real).
   const [order, setOrder] = useState<Detail | null | undefined>(undefined);
   // The Book courier / Decline bar takes the bottom of the screen.
-  useHideStoreNav(!!order && (order.canShip || order.canDecline));
+  useHideStoreNav(!!order && (order.canShip || order.canDecline || order.canDeliverMyself));
   const [loadError, setLoadError] = useState(false);
   const [shipping, setShipping] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -87,6 +117,16 @@ function StoreOrderPage() {
   const [declineOpen, setDeclineOpen] = useState(false);
   const closeDecline = useCallback(() => setDeclineOpen(false), []);
   useOverlayHistory(declineOpen, closeDecline);
+  const [selfOpen, setSelfOpen] = useState(false);
+  const closeSelf = useCallback(() => setSelfOpen(false), []);
+  useOverlayHistory(selfOpen, closeSelf);
+  // Once per visit, and only if the order can still go that way.
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    if (!deliver || autoOpened || !order) return;
+    setAutoOpened(true);
+    if (order.canDeliverMyself && !order.selfDelivered) setSelfOpen(true);
+  }, [deliver, autoOpened, order]);
 
   const load = useCallback(async () => {
     try {
@@ -122,6 +162,48 @@ function StoreOrderPage() {
       await load();
     } catch {
       setActionError("Couldn't reach Oakmonte. Check your connection.");
+    } finally {
+      setShipping(false);
+    }
+  }
+
+  // Throws on failure so the sheet can show the message and stay open.
+  async function selfDeliver(
+    body: { action: "dispatch" } | { action: "request_fee"; naira: number },
+  ) {
+    let res: Response;
+    try {
+      res = await authedFetch(`/api/store/orders/${orderId}/self-deliver`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      throw new Error("Couldn't reach Oakmonte. Check your connection.");
+    }
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(err?.error ?? "Couldn't update the order.");
+    }
+    setSelfOpen(false);
+    setActionError("");
+    setNotice(
+      body.action === "dispatch"
+        ? "Marked on its way. The buyer can see you're delivering it."
+        : `Asked the buyer for ₦${body.naira.toLocaleString()} more for delivery. Send it once they've paid.`,
+    );
+    await load();
+  }
+
+  // Already committed to delivering it themselves: straight to "on its way".
+  async function dispatch() {
+    setActionError("");
+    setNotice("");
+    setShipping(true);
+    try {
+      await selfDeliver({ action: "dispatch" });
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Couldn't update the order.");
     } finally {
       setShipping(false);
     }
@@ -217,7 +299,7 @@ function StoreOrderPage() {
 
   const headline = HEADLINE[order.status];
   const itemCount = order.items.reduce((n, it) => n + it.quantity, 0);
-  const actions = order.canShip || order.canDecline;
+  const actions = order.canShip || order.canDecline || order.canDeliverMyself;
   const closed = order.status === "declined" || order.status === "cancelled";
 
   return (
@@ -227,7 +309,7 @@ function StoreOrderPage() {
         <div
           className={`flex flex-col gap-3 px-4 pt-4 ${
             actions
-              ? "pb-[calc(env(safe-area-inset-bottom)+9rem)]"
+              ? "pb-[calc(env(safe-area-inset-bottom)+11rem)]"
               : "pb-[calc(env(safe-area-inset-bottom)+2.5rem)]"
           }`}
         >
@@ -320,7 +402,13 @@ function StoreOrderPage() {
           <Section title="Payment">
             <Row label="Items" value={nairaFromKobo(order.itemsKobo)} />
             <Row
-              label={`Delivery${order.courierName ? ` · ${order.courierName}` : ""}`}
+              label={`Delivery${
+                order.selfDelivered
+                  ? " · by you"
+                  : order.courierName
+                    ? ` · ${order.courierName}`
+                    : ""
+              }`}
               value={nairaFromKobo(order.deliveryKobo)}
             />
             {order.platformFeeKobo > 0 && (
@@ -370,7 +458,28 @@ function StoreOrderPage() {
             )}
           </Section>
 
-          {(order.courierName || order.shipbubbleOrderId) && (
+          {order.selfDelivered && (
+            <Section title="Delivery">
+              <Row label="Method" value="You deliver it" />
+              {order.deliveryTopUp && (
+                <Row
+                  label={
+                    order.deliveryTopUp.status === "paid"
+                      ? "Extra delivery fee · paid"
+                      : order.deliveryTopUp.status === "refunded"
+                        ? "Extra delivery fee · refunded"
+                        : "Extra delivery fee · not paid yet"
+                  }
+                  value={nairaFromKobo(order.deliveryTopUp.amountKobo)}
+                />
+              )}
+              <p className="mt-1 text-[12.5px] text-sd-ink-muted">
+                The delivery fee is added to your payout, less Paystack&apos;s 1.5%.
+              </p>
+            </Section>
+          )}
+
+          {!order.selfDelivered && (order.courierName || order.shipbubbleOrderId) && (
             <Section title="Delivery">
               {order.courierName && <Row label="Courier" value={order.courierName} />}
               {order.shipbubbleOrderId && <Row label="Shipment" value={order.shipbubbleOrderId} />}
@@ -393,35 +502,88 @@ function StoreOrderPage() {
                 {order.shipBlockedReason}
               </p>
             )}
-            <div className="flex gap-2">
-              {order.canDecline && (
+            {order.selfDelivered ? (
+              <div className="flex gap-2">
+                {order.canDecline && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionError("");
+                      setDeclineOpen(true);
+                    }}
+                    disabled={shipping}
+                    className="oak-tap h-12 shrink-0 rounded-full border border-sd-line px-5 text-[15px] font-semibold text-sd-danger-ink oak-motion-control active:scale-[0.98] disabled:opacity-50"
+                  >
+                    Decline
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => {
-                    setActionError("");
-                    setDeclineOpen(true);
-                  }}
-                  disabled={shipping}
-                  className="oak-tap h-12 shrink-0 rounded-full border border-sd-line px-5 text-[15px] font-semibold text-sd-danger-ink oak-motion-control active:scale-[0.98] disabled:opacity-50"
+                  onClick={() => void dispatch()}
+                  disabled={!order.canDeliverMyself || shipping}
+                  className="oak-tap h-12 min-w-0 flex-1 rounded-full bg-sd-ink text-[15px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-40"
                 >
-                  Decline
+                  {shipping ? "Saving…" : "It's on its way"}
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => void ship()}
-                disabled={!order.canShip || shipping}
-                className="oak-tap h-12 min-w-0 flex-1 rounded-full bg-sd-ink text-[15px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-40"
-              >
-                {shipping ? "Booking courier…" : "Book courier and ship"}
-              </button>
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  {order.canDeliverMyself && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionError("");
+                        setSelfOpen(true);
+                      }}
+                      disabled={shipping}
+                      className="oak-tap h-12 min-w-0 flex-1 rounded-full border border-sd-line text-[15px] font-semibold text-sd-ink oak-motion-control active:scale-[0.98] disabled:opacity-50"
+                    >
+                      Deliver it myself
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void ship()}
+                    disabled={!order.canShip || shipping}
+                    className="oak-tap h-12 min-w-0 flex-1 rounded-full bg-sd-ink text-[15px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-40"
+                  >
+                    {shipping ? "Booking courier…" : "Book courier"}
+                  </button>
+                </div>
+                {order.canDecline && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionError("");
+                      setDeclineOpen(true);
+                    }}
+                    disabled={shipping}
+                    className="oak-tap mx-auto mt-1 flex h-10 items-center px-4 text-[14px] font-semibold text-sd-danger-ink disabled:opacity-50"
+                  >
+                    Decline order
+                  </button>
+                )}
+              </>
+            )}
           </div>
+        )}
+
+        {selfOpen && (
+          <SelfDeliverySheet
+            deliveryKobo={order.deliveryKobo}
+            buyerName={order.shipTo.name}
+            canRequestFee={order.canRequestFee}
+            onDispatch={() => selfDeliver({ action: "dispatch" })}
+            onRequestFee={(naira) => selfDeliver({ action: "request_fee", naira })}
+            onClose={closeSelf}
+          />
         )}
 
         {declineOpen && order.declineRefund && (
           <DeclineOrderSheet
-            totalKobo={order.payment?.amountKobo ?? order.totalKobo}
+            // The order total: an extra delivery fee paid on top is refunded too.
+            totalKobo={order.totalKobo}
             itemCount={itemCount}
             refundMode={order.declineRefund}
             onConfirm={decline}

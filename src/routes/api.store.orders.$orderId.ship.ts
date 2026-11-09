@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 import { requireOwnStore } from "@/lib/server-auth";
 import { shipbubble } from "@/lib/shipping.server";
 import { recordOrderEvent } from "@/lib/order-events.server";
+import { isSelfDelivered, SELF_DELIVERY_METHOD } from "@/lib/self-delivery";
 
 // Books the courier for a paid order, from Oakmonte's Shipbubble wallet. Only
 // the owning store can do it, only while the order is paid and not yet booked,
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/api/store/orders/$orderId/ship")({
         const { data: order } = await supabaseAdmin
           .from("orders")
           .select(
-            "id, status, store_id, shipbubble_request_token, courier_service_code, courier_id, shipbubble_order_id",
+            "id, status, store_id, delivery_method, shipbubble_request_token, courier_service_code, courier_id, shipbubble_order_id",
           )
           .eq("id", params.orderId)
           .eq("store_id", auth.value.storeId)
@@ -29,6 +30,14 @@ export const Route = createFileRoute("/api/store/orders/$orderId/ship")({
         if (order.status !== "paid" || order.shipbubble_order_id) {
           return Response.json(
             { error: "This order isn't waiting to be shipped." },
+            { status: 409, headers: PRIVATE },
+          );
+        }
+        // The seller chose to deliver it themselves (and may have asked the
+        // buyer for more); a courier now would deliver it twice.
+        if (isSelfDelivered(order.delivery_method)) {
+          return Response.json(
+            { error: "You're delivering this one yourself." },
             { status: 409, headers: PRIVATE },
           );
         }
@@ -55,6 +64,9 @@ export const Route = createFileRoute("/api/store/orders/$orderId/ship")({
             })
             .eq("id", order.id)
             .eq("status", "paid")
+            // Not switched to self-delivery while the label was being bought
+            // (that would pay the seller the courier's fee).
+            .neq("delivery_method", SELF_DELIVERY_METHOD)
             .select("id");
           if (error) throw error;
           if (shipped?.length) {
@@ -62,7 +74,8 @@ export const Route = createFileRoute("/api/store/orders/$orderId/ship")({
             // this is the only record of when it shipped.
             await recordOrderEvent(order.id, "shipped", String(label.order_id ?? "") || null);
           } else {
-            // The order left "paid" (declined) while the label was being
+            // The order left "paid" (declined), or the seller switched to
+            // delivering it themselves, while the label was being
             // bought. The courier is booked and paid for regardless.
             console.error(
               "courier booked for an order that is no longer paid",

@@ -14,8 +14,10 @@ import { recordOrderEvent } from "@/lib/order-events.server";
 // Every path goes through markDelivered, and only the call that actually
 // moves shipped -> delivered pays out, so two of them racing can't pay twice.
 
-/** Days after shipping before a quiet order is released to the seller. */
-export const AUTO_RELEASE_DAYS = 7;
+import { AUTO_RELEASE_DAYS } from "@/lib/self-delivery";
+
+// Defined beside the self-delivery rules so the seller's screens can say it.
+export { AUTO_RELEASE_DAYS };
 
 /** Moves one shipped order to delivered and pays the seller. False when the
  *  order wasn't "shipped" (already delivered, declined, or never shipped). */

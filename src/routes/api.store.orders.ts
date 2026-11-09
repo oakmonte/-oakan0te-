@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/store/orders")({
         let query = supabaseAdmin
           .from("orders")
           .select(
-            "id, status, items_total_kobo, delivery_fee_kobo, total_kobo, ship_to, courier_name, tracking_url, shipbubble_order_id, created_at",
+            "id, status, items_total_kobo, delivery_fee_kobo, total_kobo, delivery_method, ship_to, courier_name, tracking_url, shipbubble_order_id, created_at",
           )
           .eq("store_id", storeId)
           .in("status", statusesForTab(tab))

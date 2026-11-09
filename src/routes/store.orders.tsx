@@ -13,6 +13,7 @@ import {
   type SellerTab,
 } from "@/lib/order-status";
 import { DesktopPanel } from "@/components/store/DesktopPanel";
+import { isSelfDelivered } from "@/lib/self-delivery";
 
 export const Route = createFileRoute("/store/orders")({
   // The tab lives in the URL so coming back from an order lands on the tab it
@@ -32,6 +33,7 @@ type StoreOrder = {
   courier_name: string | null;
   tracking_url: string | null;
   shipbubble_order_id: string | null;
+  delivery_method: string;
   created_at: string;
   refund: RefundState;
   items: {
@@ -48,17 +50,17 @@ const EMPTY: Record<SellerTab, { icon: LucideIcon; title: string; description: s
   to_ship: {
     icon: ShoppingBag,
     title: "Nothing to ship",
-    description: "Paid orders land here, ready for you to book a courier.",
+    description: "Paid orders land here, ready for you to book a courier or deliver yourself.",
   },
   shipped: {
     icon: Truck,
     title: "Nothing on the road",
-    description: "Orders you've handed to a courier stay here until they arrive.",
+    description: "Orders on their way, by courier or by you, stay here until they arrive.",
   },
   delivered: {
     icon: PackageCheck,
     title: "No deliveries yet",
-    description: "Orders move here once the courier confirms they've arrived.",
+    description: "Orders move here once they've arrived.",
   },
   closed: {
     icon: Ban,
@@ -251,7 +253,9 @@ function OrderCard({
 }) {
   const shown = o.items.slice(0, 2);
   const more = o.items.length - shown.length;
-  const canShip = o.status === "paid" && !o.shipbubble_order_id;
+  const open = o.status === "paid" && !o.shipbubble_order_id;
+  const selfDelivered = isSelfDelivered(o.delivery_method);
+  const canShip = open && !selfDelivered;
   return (
     <li className="overflow-hidden rounded-2xl border border-sd-line bg-sd-surface">
       <Link
@@ -308,14 +312,37 @@ function OrderCard({
       {canShip && (
         <div className="border-t border-sd-line px-4 py-3">
           {shipError && <p className="mb-2 text-[13px] text-sd-danger-ink">{shipError}</p>}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onShip}
-            className="oak-tap h-11 w-full rounded-full bg-sd-ink text-[14px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-50"
+          <div className="flex gap-2">
+            {/* Opens the order with the self-delivery sheet up: it has a
+                choice to make (ask the buyer for more?) that a card can't hold. */}
+            <Link
+              to="/store/orders/$orderId"
+              params={{ orderId: o.id }}
+              search={{ deliver: true }}
+              className="oak-tap flex h-11 min-w-0 flex-1 items-center justify-center rounded-full border border-sd-line text-[14px] font-semibold text-sd-ink oak-motion-control active:scale-[0.98]"
+            >
+              Deliver myself
+            </Link>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onShip}
+              className="oak-tap h-11 min-w-0 flex-1 rounded-full bg-sd-ink text-[14px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98] disabled:opacity-50"
+            >
+              {busy ? "Booking courier…" : "Book courier"}
+            </button>
+          </div>
+        </div>
+      )}
+      {open && selfDelivered && (
+        <div className="border-t border-sd-line px-4 py-3">
+          <Link
+            to="/store/orders/$orderId"
+            params={{ orderId: o.id }}
+            className="oak-tap flex h-11 w-full items-center justify-center rounded-full bg-sd-ink text-[14px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
           >
-            {busy ? "Booking courier…" : "Book courier and ship"}
-          </button>
+            You're delivering this · send it
+          </Link>
         </div>
       )}
       {o.tracking_url && (

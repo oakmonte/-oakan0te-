@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 import { paystackConfigured } from "@/lib/paystack.server";
 import { loadOrderPayment, recordOrderEvent } from "@/lib/order-events.server";
+import { isTopUpReference } from "@/lib/self-delivery";
 
 // Gives a buyer their money back when an order closes after they paid.
 //
@@ -86,8 +87,41 @@ export async function requestPaystackRefund(
 
 export type RefundOutcome = { outcome: "refunded" | "manual" | "none"; note?: string };
 
-/** Refunds the payment behind an order that has just been declined. */
+/** Sends back any extra delivery money the buyer paid on top (see
+ *  self-delivery.ts). Never throws; one Paystack won't take is logged for a
+ *  hand refund alongside the main one. */
+async function refundDeliveryTopUps(orderId: string): Promise<void> {
+  const { data } = await supabaseAdmin
+    .from("order_payments")
+    .select("id, reference")
+    .eq("order_id", orderId)
+    .eq("method", "paystack")
+    .eq("status", "confirmed")
+    .like("reference", "dlv%");
+  for (const row of data ?? []) {
+    if (!isTopUpReference(row.reference) || !row.reference) continue;
+    const result = await requestPaystackRefund(row.reference);
+    if (result.ok) {
+      await supabaseAdmin
+        .from("order_payments")
+        .update({ status: "refunded" })
+        .eq("id", row.id)
+        .eq("status", "confirmed");
+    } else {
+      console.error("manual top-up refund needed", orderId, result.message);
+      await recordOrderEvent(
+        orderId,
+        "refund_manual",
+        `Extra delivery fee: Paystack refused (${result.message})`,
+      );
+    }
+  }
+}
+
+/** Refunds the payment behind an order that has just been declined, and any
+ *  extra delivery fee paid on top of it. */
 export async function refundOrderPayment(orderId: string): Promise<RefundOutcome> {
+  await refundDeliveryTopUps(orderId);
   const payment = await loadOrderPayment(orderId);
   const plan = planRefund(payment, paystackConfigured());
   if (plan.kind === "none") return { outcome: "none" };

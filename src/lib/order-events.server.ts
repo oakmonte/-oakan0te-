@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/integrations/my-supabase/client.server";
 import { untypedTable } from "@/lib/integrations/my-supabase/untyped";
 import { pickOrderPayment } from "@/lib/order-status";
+import { isTopUpReference } from "@/lib/self-delivery";
 
 // The order timeline's event log (order_events, migration
 // 20261008126000_orders.sql). Written and read only here, with the service role.
@@ -59,7 +60,9 @@ export async function loadOrderPayment(orderId: string) {
     .select("id, method, status, reference, amount_kobo, confirmed_at, created_at")
     .eq("order_id", orderId)
     .order("created_at", { ascending: false });
-  return pickOrderPayment(data ?? []);
+  // A delivery top-up (self-delivery.ts) is extra money on top, never the
+  // payment that made the order paid.
+  return pickOrderPayment((data ?? []).filter((p) => !isTopUpReference(p.reference)));
 }
 
 /** The same choice for many orders at once, for the list screens: order id ->
@@ -69,11 +72,12 @@ export async function loadPaymentStatuses(orderIds: string[]): Promise<Map<strin
   if (orderIds.length === 0) return out;
   const { data } = await supabaseAdmin
     .from("order_payments")
-    .select("order_id, status, created_at")
+    .select("order_id, status, reference, created_at")
     .in("order_id", orderIds)
     .order("created_at", { ascending: false });
   const byOrder = new Map<string, { status: string }[]>();
-  for (const p of data ?? []) byOrder.set(p.order_id, [...(byOrder.get(p.order_id) ?? []), p]);
+  for (const p of (data ?? []).filter((p) => !isTopUpReference(p.reference)))
+    byOrder.set(p.order_id, [...(byOrder.get(p.order_id) ?? []), p]);
   for (const [orderId, rows] of byOrder) {
     const picked = pickOrderPayment(rows);
     if (picked) out.set(orderId, picked.status);

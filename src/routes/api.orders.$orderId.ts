@@ -5,6 +5,8 @@ import { verifyTransaction, paystackConfigured } from "@/lib/paystack.server";
 import { settlePaystackPayment } from "@/lib/orders.server";
 import { listOrderEvents, loadOrderPayment } from "@/lib/order-events.server";
 import { buildTimeline, isOrderId, refundStateFor } from "@/lib/order-status";
+import { latestPendingTopUpReference, loadTopUp } from "@/lib/delivery-topup.server";
+import { isSelfDelivered } from "@/lib/self-delivery";
 
 // One order, for the buyer who placed it: a signed-in owner, or a guest holding
 // the guest_token from their link. Anything else is a 404 (never a 403, so ids
@@ -27,7 +29,7 @@ export const Route = createFileRoute("/api/orders/$orderId")({
         const { data: order } = await supabaseAdmin
           .from("orders")
           .select(
-            "id, buyer_id, guest_token, status, items_total_kobo, delivery_fee_kobo, total_kobo, ship_to, courier_name, tracking_url, store_id, decline_reason, created_at, updated_at",
+            "id, buyer_id, guest_token, status, items_total_kobo, delivery_fee_kobo, total_kobo, delivery_method, ship_to, courier_name, tracking_url, store_id, decline_reason, created_at, updated_at",
           )
           .eq("id", params.orderId)
           .maybeSingle();
@@ -53,7 +55,38 @@ export const Route = createFileRoute("/api/orders/$orderId")({
           }
         }
 
-        const [{ data: items }, { data: store }, payment, events] = await Promise.all([
+        // Back from paying the seller's extra delivery fee: settle it now
+        // rather than waiting on the webhook, like the main payment above.
+        if (
+          isSelfDelivered(order.delivery_method) &&
+          (order.status === "paid" || order.status === "shipped") &&
+          paystackConfigured()
+        ) {
+          const ref = await latestPendingTopUpReference(order.id);
+          if (ref) {
+            try {
+              const v = await verifyTransaction(ref);
+              if (v.status === "success") {
+                await settlePaystackPayment({
+                  reference: v.reference,
+                  amountKobo: v.amountKobo,
+                  currency: v.currency,
+                });
+                // The fee was added to the order; read the new totals.
+                const { data: fresh } = await supabaseAdmin
+                  .from("orders")
+                  .select("delivery_fee_kobo, total_kobo")
+                  .eq("id", order.id)
+                  .maybeSingle();
+                if (fresh) Object.assign(order, fresh);
+              }
+            } catch {
+              // Not paid (or never opened), or Paystack unreachable.
+            }
+          }
+        }
+
+        const [{ data: items }, { data: store }, payment, events, topUp] = await Promise.all([
           supabaseAdmin
             .from("order_items")
             .select("title, variant_label, image_url, unit_price_kobo, quantity")
@@ -66,6 +99,7 @@ export const Route = createFileRoute("/api/orders/$orderId")({
           // After the verify above, so a payment it just settled reads as paid.
           loadOrderPayment(order.id),
           listOrderEvents(order.id),
+          loadTopUp(order.id),
         ]);
         // The seller's personal username is what /messages?to= resolves, and
         // it's already public on their profile.
@@ -86,6 +120,14 @@ export const Route = createFileRoute("/api/orders/$orderId")({
           deliveryKobo: order.delivery_fee_kobo,
           totalKobo: order.total_kobo,
           courierName: order.courier_name,
+          selfDelivered: isSelfDelivered(order.delivery_method),
+          // Extra delivery money the seller asked for after checkout. Payable
+          // while the order is open (paid or on its way).
+          deliveryTopUp: topUp,
+          canPayTopUp:
+            topUp?.status === "pending" &&
+            (order.status === "paid" || order.status === "shipped") &&
+            paystackConfigured(),
           trackingUrl: order.tracking_url,
           storeName: store?.brand_name ?? null,
           sellerUsername: owner?.personal_username ?? null,
@@ -94,7 +136,12 @@ export const Route = createFileRoute("/api/orders/$orderId")({
           createdAt: order.created_at,
           declineReason: order.decline_reason,
           refund,
-          refundKobo: refund === "none" ? 0 : (payment?.amount_kobo ?? order.total_kobo),
+          // An extra delivery fee paid on top goes back with the order.
+          refundKobo:
+            refund === "none"
+              ? 0
+              : (payment?.amount_kobo ?? order.total_kobo) +
+                (topUp && topUp.status !== "pending" ? topUp.amountKobo : 0),
           timeline: buildTimeline({
             status: order.status,
             createdAt: order.created_at,
