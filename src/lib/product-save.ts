@@ -3,6 +3,7 @@ import type { Json } from "@/lib/integrations/my-supabase/types";
 import { grossUpForNet } from "@/lib/pricing-fees";
 import { clearAutosavedDraft } from "@/lib/product-draft-handoff";
 import { stockTotal } from "@/components/product-form/variant-stock";
+import { toLocationId } from "@/lib/stock-location";
 import type { VariantOption, VariantRow } from "@/components/product-form/VariantMatrixBuilder";
 import type { ManualSize, SizeMeasurements } from "@/lib/size-chart-config";
 import type { BarcodeEntry } from "@/lib/barcode-types";
@@ -264,7 +265,13 @@ async function runCreate(
     await insertBarcodes(barcodeInsertRows(variant.id, payload.regularBarcodes));
 
     const stockPayload = Object.entries(payload.regularLocationQuantities).map(
-      ([locationId, quantity]) => ({ variant_id: variant.id, location_id: locationId, quantity }),
+      // A null location_id is "No location added" -- see stock-location.ts.
+      // The generated types predate that migration and still say string.
+      ([locationId, quantity]) => ({
+        variant_id: variant.id,
+        location_id: toLocationId(locationId) as string,
+        quantity,
+      }),
     );
     if (stockPayload.length > 0) {
       const stockRes = await supabase.from("product_variant_stock").insert(stockPayload);
@@ -324,7 +331,7 @@ async function runCreate(
     const stockPayload = selectedRows.flatMap((r, ri) =>
       Object.entries(r.locationQuantities).map(([locationId, quantity]) => ({
         variant_id: variantsPayload[ri].id,
-        location_id: locationId,
+        location_id: toLocationId(locationId) as string,
         quantity,
       })),
     );
@@ -466,8 +473,8 @@ async function loadExistingChildren(
 }
 
 function stockRows(locationQuantities: Record<string, number>) {
-  return Object.entries(locationQuantities).map(([location_id, quantity]) => ({
-    location_id,
+  return Object.entries(locationQuantities).map(([key, quantity]) => ({
+    location_id: toLocationId(key),
     quantity,
   }));
 }

@@ -4,6 +4,7 @@ import { X, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { IDENTIFIERS_ENABLED } from "@/lib/features";
+import { NO_LOCATION } from "@/lib/stock-location";
 import { Code128Barcode } from "./Code128Barcode";
 import { BarcodesSheet } from "./BarcodesSheet";
 import { BARCODE_TYPE_LABELS, type BarcodeEntry } from "@/lib/barcode-types";
@@ -40,6 +41,10 @@ export type InventoryValues = {
 };
 
 type StoreLocationOption = { id: string; name: string };
+
+/** Stock held with no pickup location -- a row like any location's, so a
+ *  seller who skipped locations can still count what they have. */
+const NO_LOCATION_OPTION: StoreLocationOption = { id: NO_LOCATION, name: "No location added" };
 
 /** How many of a store's locations start ticked on a fresh Inventory sheet. */
 const DEFAULT_TICKED_LOCATIONS = 3;
@@ -130,11 +135,14 @@ export function InventorySheet({
         // The "apply to all" bulk sheet seeds them too, but reports an
         // untouched seed as defaultsOnly, so merely opening and closing it
         // can't overwrite every variant's real stock with zeros.
+        // No locations at all (setup's "Skip"): start on the "No location
+        // added" row instead, so stock can be counted straight away.
         setLocationQuantities((prev) => {
           if (Object.keys(prev).length > 0) return prev;
-          const seed = Object.fromEntries(
-            loaded.slice(0, DEFAULT_TICKED_LOCATIONS).map((l) => [l.id, 0]),
-          );
+          const seed =
+            loaded.length === 0
+              ? { [NO_LOCATION]: 0 }
+              : Object.fromEntries(loaded.slice(0, DEFAULT_TICKED_LOCATIONS).map((l) => [l.id, 0]));
           seededRef.current = seed;
           return seed;
         });
@@ -145,6 +153,12 @@ export function InventorySheet({
   }, [storeId]);
 
   const selectedLocations = (locations ?? []).filter((l) => l.id in locationQuantities);
+  // What the Quantity card lists: real locations first, "No location added"
+  // last, matching the picker's order.
+  const stockRows =
+    NO_LOCATION in locationQuantities
+      ? [...selectedLocations, NO_LOCATION_OPTION]
+      : selectedLocations;
   const total = Object.values(locationQuantities).reduce((sum, n) => sum + n, 0);
 
   function setQuantity(locationId: string, qty: number) {
@@ -178,7 +192,9 @@ export function InventorySheet({
   }
 
   function handleSave() {
-    if (selectedLocations.length === 0) {
+    // Only when there is nowhere at all to count stock. Stock on "No location
+    // added" is a choice the seller made; no warning for it.
+    if (stockRows.length === 0) {
       setGuardDialog("no-locations");
       return;
     }
@@ -304,7 +320,7 @@ export function InventorySheet({
             {selectedLocations.length === 1 ? "" : "s"}
           </p>
 
-          {selectedLocations.length === 0 ? (
+          {stockRows.length === 0 ? (
             <p className="text-sm text-gray-400 py-4">
               No locations picked yet — tap "Edit locations" to choose where this is stocked.
             </p>
@@ -314,12 +330,16 @@ export function InventorySheet({
                 <span className="text-xs text-gray-500">Locations</span>
                 <span className="text-xs text-gray-500">Available</span>
               </div>
-              {selectedLocations.map((loc) => (
+              {stockRows.map((loc) => (
                 <div
                   key={loc.id}
                   className="flex items-center justify-between gap-3 rounded-xl border border-gray-400 bg-white px-3.5 py-3 animate-in fade-in slide-in-from-top-1 duration-200"
                 >
-                  <span className="text-[15px] text-gray-900">{loc.name}</span>
+                  <span
+                    className={`text-[15px] ${loc.id === NO_LOCATION ? "text-gray-500" : "text-gray-900"}`}
+                  >
+                    {loc.name}
+                  </span>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -493,19 +513,35 @@ function InventoryLocationsPicker({
             );
           })
         )}
+        {/* Always offered, under any real locations: stock the seller holds
+            but hasn't tied to a pickup location yet. */}
+        <button
+          type="button"
+          onClick={() => onToggle(NO_LOCATION)}
+          className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-400 text-left transition-colors duration-150 active:bg-gray-50"
+        >
+          <span
+            className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors duration-150 ${
+              selectedIds.has(NO_LOCATION) ? "bg-black border-black" : "border-gray-400 bg-white"
+            }`}
+          >
+            {selectedIds.has(NO_LOCATION) && (
+              <Check size={13} className="text-white oak-motion-pop" />
+            )}
+          </span>
+          <span className="text-[15px] text-gray-500">No location added</span>
+        </button>
       </div>
 
-      {locations.length > 0 && (
-        <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-400 bg-white shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5 transition-transform duration-150 active:scale-[0.98]"
-          >
-            Save
-          </button>
-        </div>
-      )}
+      <div className="sticky bottom-0 z-20 px-4 pt-3 oak-safe-bottom border-t border-gray-400 bg-white shrink-0">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full bg-black text-white text-sm font-medium rounded-full py-3.5 transition-transform duration-150 active:scale-[0.98]"
+        >
+          Save
+        </button>
+      </div>
     </PageSheet>
   );
 }

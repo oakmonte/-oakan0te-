@@ -1,4 +1,5 @@
 import { StatusToggle } from "@/components/product-form/StatusPicker";
+import { fromLocationId } from "@/lib/stock-location";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { NECESSITIES_ENABLED, TAGS_ENABLED } from "@/lib/product-form-flags";
 import { sellerEntryFromCharged } from "@/lib/pricing-fees";
@@ -120,7 +121,7 @@ type LoadedProduct = {
     option2_value: string | null;
     option3_value: string | null;
     product_variant_options: { variant_id: string; option_id: string; value_id: string }[];
-    product_variant_stock: { location_id: string; quantity: number }[];
+    product_variant_stock: { location_id: string | null; quantity: number }[];
     product_variant_barcodes: { type: string; value: string; position: number }[];
     // Deprecated (see product_variant_barcodes above) but still fetched: an
     // importer (CSV/Bumpa) writes only this column, never the new table, so
@@ -566,7 +567,7 @@ function EditProduct() {
             mainImageUrl: v.main_image_url ?? "",
             continueSellingOutOfStock: v.continue_selling_out_of_stock,
             locationQuantities: Object.fromEntries(
-              v.product_variant_stock.map((s) => [s.location_id, s.quantity]),
+              v.product_variant_stock.map((s) => [fromLocationId(s.location_id), s.quantity]),
             ),
             legacyStockQty: v.product_variant_stock.length === 0 ? (v.stock_qty ?? 0) : undefined,
             barcodes: toBarcodeEntries(v.product_variant_barcodes, v.barcode),
@@ -593,7 +594,10 @@ function EditProduct() {
         setRegularContinueSellingOutOfStock(v?.continue_selling_out_of_stock ?? false);
         setRegularLocationQuantities(
           Object.fromEntries(
-            (v?.product_variant_stock ?? []).map((s) => [s.location_id, s.quantity]),
+            (v?.product_variant_stock ?? []).map((s) => [
+              fromLocationId(s.location_id),
+              s.quantity,
+            ]),
           ),
         );
         setRegularLegacyStockQty(
