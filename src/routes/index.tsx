@@ -753,7 +753,7 @@ const CSS = `
 .oak-sellers .hero-copy{position:relative;z-index:1;max-width:740px;animation:oakSellersRise 1s ease both}
 .oak-sellers .section-kicker{color:var(--primary);text-transform:uppercase;letter-spacing:.06em;font:10px 'DM Mono',monospace}
 .oak-sellers .studio-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-right:8px;box-shadow:0 0 14px rgba(20,85,217,.55);animation:oakSellersBlink 2s ease-in-out infinite}
-.oak-sellers .hero h1{margin:26px 0 32px;font-size:clamp(72px,13vw,185px);line-height:.82;letter-spacing:-.1em;font-weight:600;animation:oakSellersHeadlineIn 1.15s .15s ease both}
+.oak-sellers .hero h1{margin:26px 0 32px;font-size:clamp(72px,13vw,185px);line-height:.82;letter-spacing:-.1em;word-spacing:.14em;font-weight:600;animation:oakSellersHeadlineIn 1.15s .15s ease both}
 .oak-sellers .hero h1 em,.oak-sellers .manifesto h2 em,.oak-sellers .feature-intro h2 em,.oak-sellers .studio-copy h2 em,.oak-sellers .manufacturer-section h2 em,.oak-sellers .free-panel h2 em,.oak-sellers .footer-cta h2 em{font-family:Georgia,serif;font-weight:400;color:var(--accent-blue)}
 .oak-sellers .hero-copy p{max-width:440px;color:#475467;line-height:1.55;font-size:16px;animation:oakSellersRise .9s .35s ease both}
 .oak-sellers .hero-buttons{display:flex;align-items:center;gap:27px;margin-top:32px;animation:oakSellersRise .9s .5s ease both}
@@ -779,7 +779,7 @@ const CSS = `
 
 .oak-sellers .manifesto{position:relative;padding:155px 7vw 170px;background:var(--ink);color:#fff}
 .oak-sellers .manifesto .section-kicker{color:#7ba2ff}
-.oak-sellers .manifesto h2{margin:28px 0;font-size:clamp(56px,9vw,126px);line-height:.88;letter-spacing:-.1em;font-weight:600}
+.oak-sellers .manifesto h2{margin:28px 0;font-size:clamp(56px,9vw,126px);line-height:.88;letter-spacing:-.1em;word-spacing:.14em;font-weight:600}
 .oak-sellers .manifesto p{max-width:430px;margin-left:40%;color:#c4cad5;line-height:1.6}
 .oak-sellers .manifesto .manifesto-typed{margin-top:110px}
 .oak-sellers .manifesto .manifesto-typed.manifesto-centre{margin:0 auto;max-width:560px;text-align:center;font-size:clamp(18px,2vw,24px)}
@@ -800,7 +800,7 @@ const CSS = `
 .oak-sellers .steps-list strong{font-size:20px;letter-spacing:-.05em;font-weight:600}
 
 .oak-sellers .features-section{display:grid;grid-template-columns:.9fr 1.1fr;gap:9vw;padding:130px 7vw}
-.oak-sellers .feature-intro h2,.oak-sellers .studio-copy h2,.oak-sellers .manufacturer-section h2,.oak-sellers .free-panel h2{margin:27px 0;font-size:clamp(49px,7vw,95px);line-height:.9;letter-spacing:-.09em;font-weight:600}
+.oak-sellers .feature-intro h2,.oak-sellers .studio-copy h2,.oak-sellers .manufacturer-section h2,.oak-sellers .free-panel h2{margin:27px 0;font-size:clamp(49px,7vw,95px);line-height:.9;letter-spacing:-.09em;word-spacing:.14em;font-weight:600}
 .oak-sellers .feature-intro p,.oak-sellers .studio-copy p,.oak-sellers .manufacturer-section p,.oak-sellers .free-panel p{max-width:360px;color:var(--muted);line-height:1.6;font-size:14px}
 .oak-sellers .studio-copy p{color:#1f2937;font-weight:500}
 .oak-sellers .feature-list{border-top:1px solid var(--border)}
@@ -810,7 +810,7 @@ const CSS = `
   .oak-sellers .feature-trigger:hover{padding-left:12px;background:var(--blue-soft)}
 }
 .oak-sellers .feature-number{color:var(--primary);font:11px 'DM Mono',monospace}
-.oak-sellers .feature-title{flex:1;font-size:clamp(22px,3vw,36px);letter-spacing:-.07em;font-weight:600}
+.oak-sellers .feature-title{flex:1;font-size:clamp(22px,3vw,36px);letter-spacing:-.07em;word-spacing:.1em;font-weight:600}
 .oak-sellers .feature-chevron{color:var(--muted);flex:none;transition:transform var(--duration-fast) var(--ease-out),color var(--duration-fast) var(--ease-out)}
 .oak-sellers .feature-row.is-open .feature-chevron{transform:rotate(180deg);color:var(--accent-blue)}
 /* Accordion via grid-template-rows, not conditional mount -- animates open
@@ -999,7 +999,7 @@ const CSS = `
 
 .oak-sellers .site-footer{padding:130px 7vw 25px}
 .oak-sellers .footer-cta{min-height:445px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
-.oak-sellers .footer-cta h2{margin:27px 0 45px;font-size:clamp(70px,10vw,145px);line-height:.83;letter-spacing:-.1em}
+.oak-sellers .footer-cta h2{margin:27px 0 45px;font-size:clamp(70px,10vw,145px);line-height:.83;letter-spacing:-.1em;word-spacing:.14em}
 .oak-sellers .footer-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid var(--border);color:#798078;font:10px 'DM Mono',monospace}
 .oak-sellers .footer-bottom .wordmark{color:var(--foreground)}
 .oak-sellers .footer-bottom a{transition:color var(--duration-fast) var(--ease-out)}
@@ -1049,6 +1049,28 @@ const CSS = `
   .oak-sellers .free-list{grid-template-columns:1fr}
   .oak-sellers .footer-bottom{flex-wrap:wrap;gap:17px}
   .oak-sellers .footer-bottom span:last-child{width:100%}
+}
+
+/* Tablets in landscape and small laptops: the two-column desktop layout, but
+   its copy column is narrow, so a 7vw heading stacked six lines tall
+   ("No more / stress. / Automatic / deliveries / and / payment.") over 14px
+   body text. Smaller headings, readable body. */
+@media (min-width:801px) and (max-width:1199px){
+  .oak-sellers .studio-copy h2,.oak-sellers .feature-intro h2,.oak-sellers .manufacturer-section h2{font-size:clamp(44px,5.2vw,62px)}
+  .oak-sellers .feature-intro p,.oak-sellers .studio-copy p,.oak-sellers .manufacturer-section p,.oak-sellers .free-panel p{font-size:16px;max-width:400px}
+  .oak-sellers .studio-section{gap:6vw}
+}
+
+/* Tablets in portrait (iPad mini is 744 wide): the sections stack like on a
+   phone, but there is far more room. Copy left-aligned above a centred phone
+   read as two unrelated things, and 14px body under a 52px heading looked
+   like a footnote. Centre the copy over its demo and set body text at a
+   tablet reading size. */
+@media (min-width:601px) and (max-width:800px){
+  .oak-sellers .studio-section{align-items:center}
+  .oak-sellers .studio-section .studio-copy{text-align:center;max-width:560px}
+  .oak-sellers .studio-section .studio-copy p{margin-left:auto;margin-right:auto;max-width:440px}
+  .oak-sellers .feature-intro p,.oak-sellers .studio-copy p,.oak-sellers .manufacturer-section p,.oak-sellers .free-panel p{font-size:16.5px}
 }
 
 /* Phones: the logo, "Start selling" and the menu button share one 76px bar.
