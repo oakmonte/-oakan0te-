@@ -87,6 +87,13 @@ export default function SoundLibrarySheet({
       const res = await authedFetch(`/api/sounds?${params.toString()}`);
       const body = await res.json();
       if (id !== requestRef.current) return;
+      // Signed out is not a connection problem, and telling someone to check
+      // their signal when they need to sign in sends them the wrong way.
+      if (res.status === 401) {
+        setError("Sign in to use the sound library.");
+        setTracks([]);
+        return;
+      }
       if (!res.ok) throw new Error(body?.error ?? "Couldn't load sounds");
       setTracks(body.tracks ?? []);
     } catch (err) {
@@ -188,6 +195,8 @@ export default function SoundLibrarySheet({
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={kind === "sfx" ? "Search for an effect" : "Search for a sound"}
+              aria-label={kind === "sfx" ? "Search for an effect" : "Search for a sound"}
+              enterKeyHint="search"
               className="w-full rounded-xl bg-white/[0.08] py-3 pl-11 pr-3.5 text-[15px] text-white outline-none placeholder:text-white/35 focus:bg-white/[0.12]"
             />
           </div>

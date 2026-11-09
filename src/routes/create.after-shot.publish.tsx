@@ -83,7 +83,11 @@ function PublishPage() {
   const { media: source, output, setMedia, setOutput } = useAfterShotContext();
   const media = output ?? source;
   const setPublished = output ? setOutput : setMedia;
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
+  // Signed out at the moment of posting: the installed iOS app starts with
+  // its own, empty storage jar, and a session can lapse mid-edit. This used to
+  // return silently — a whole edited video and a Post button that did nothing.
+  const [signedOutOpen, setSignedOutOpen] = useState(false);
   const { store } = useActiveStore();
 
   const [caption, setCaption] = useState("");
@@ -134,7 +138,11 @@ function PublishPage() {
   // reports progress and errors wherever the seller ends up.
   const publish = useCallback(
     (status: "published" | "draft") => {
-      if (!user || submitting) return;
+      if (submitting) return;
+      if (!user) {
+        if (!sessionLoading) setSignedOutOpen(true);
+        return;
+      }
       // Belt as well as braces. The button is already disabled, but this is
       // the last point before the caption becomes a row in the database, and
       // a disabled button is a UI state rather than a guarantee.
@@ -242,6 +250,7 @@ function PublishPage() {
     [
       store?.store_username,
       user,
+      sessionLoading,
       submitting,
       media,
       output,
@@ -260,7 +269,8 @@ function PublishPage() {
   // aren't asked (they're not live yet).
   const [noProductsOpen, setNoProductsOpen] = useState(false);
   const requestPost = () => {
-    if (taggedProducts.length === 0) setNoProductsOpen(true);
+    if (!user) publish("published");
+    else if (taggedProducts.length === 0) setNoProductsOpen(true);
     else publish("published");
   };
 
@@ -563,8 +573,62 @@ function PublishPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Signing in leaves this screen, and the edit lives only in memory
+          (capture-handoff.ts), so offer to keep a copy first. */}
+      <AlertDialog open={signedOutOpen} onOpenChange={setSignedOutOpen}>
+        <AlertDialogContent className="max-w-[92vw] rounded-2xl sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign in to post</AlertDialogTitle>
+            <AlertDialogDescription>
+              You're signed out. Signing in leaves this screen, so save your{" "}
+              {media.type === "video" ? "video" : "photo"} to your phone first, then post it from
+              your gallery.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void saveToDevice(media.blob, media.type);
+              }}
+              className="h-12 rounded-full bg-black text-[15px] font-semibold text-white hover:bg-black"
+            >
+              Save to phone
+            </AlertDialogAction>
+            <AlertDialogCancel
+              onClick={() => navigate({ to: "/sign-in" })}
+              className="m-0 h-11 rounded-full border border-gray-400 bg-white text-gray-900 hover:bg-white"
+            >
+              Sign in
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
+}
+
+/** The share sheet where there is one (iOS has no download folder a seller
+ *  would find; "Save Video" lives in the share sheet), a plain download
+ *  otherwise. */
+async function saveToDevice(blob: Blob, type: "photo" | "video") {
+  const ext = type === "video" ? "mp4" : blob.type === "image/png" ? "png" : "jpg";
+  const file = new File([blob], `oakmonte-post.${ext}`, { type: blob.type });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file] });
+      return;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+    }
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /** Pick which frame of the video represents the post.

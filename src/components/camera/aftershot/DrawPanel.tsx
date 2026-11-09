@@ -358,37 +358,45 @@ export default function DrawPanel({ open, containerRef, onClose }: DrawPanelProp
             row. Track paints GRADIENT_CSS directly; the draggable thumb's
             own background is set to the live interpolated color, so the
             thumb itself previews the current pick, same as the reference. */}
+        {/* Touch area wider than the 6px track it holds. Only the thumb used
+            to take touches, so a tap on the strip itself fell through to the
+            canvas and painted a dot instead of picking that colour. */}
         <div
-          ref={sliderTrackRef}
-          className="absolute right-3 top-1/4 bottom-1/4 rounded-full"
-          style={{
-            width: 6,
-            background: GRADIENT_CSS,
-            boxShadow: "0 0 0 1px rgba(255,255,255,0.25)",
-            opacity: isEraser ? 0.35 : 1,
+          className="absolute right-0 top-1/4 bottom-1/4 flex justify-center"
+          style={{ width: 30, touchAction: "none" }}
+          onMouseDown={(e) => e.preventDefault()}
+          onPointerDown={(e) => {
+            e.stopPropagation(); // don't let this also register as a draw stroke
+            draggingSliderRef.current = true;
+            setFractionFromClientY(e.clientY);
           }}
         >
           <div
-            onMouseDown={(e) => e.preventDefault()}
-            onPointerDown={(e) => {
-              e.stopPropagation(); // don't let this also register as a draw stroke
-              draggingSliderRef.current = true;
-              setFractionFromClientY(e.clientY);
-            }}
-            className="absolute rounded-full"
+            ref={sliderTrackRef}
+            className="relative h-full rounded-full"
             style={{
-              width: 26,
-              height: 26,
-              left: "50%",
-              top: `${colorFraction * 100}%`,
-              transform: "translate(-50%, -50%)",
-              background: selectedColor,
-              border: "3px solid #fff",
-              boxShadow: "0 1px 6px rgba(0,0,0,0.4)",
-              touchAction: "none",
-              cursor: "grab",
+              width: 6,
+              background: GRADIENT_CSS,
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.25)",
+              opacity: isEraser ? 0.35 : 1,
             }}
-          />
+          >
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: 26,
+                height: 26,
+                left: "50%",
+                top: `${colorFraction * 100}%`,
+                transform: "translate(-50%, -50%)",
+                background: selectedColor,
+                border: "3px solid #fff",
+                boxShadow: "0 1px 6px rgba(0,0,0,0.4)",
+                touchAction: "none",
+                cursor: "grab",
+              }}
+            />
+          </div>
         </div>
       </div>
 

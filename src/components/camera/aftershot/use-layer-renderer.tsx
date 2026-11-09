@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   TEXT_LAYER_WIDTH_FRACTION,
   TEXT_LAYER_LINE_HEIGHT,
@@ -18,10 +18,26 @@ import { StrokeShape } from "./StrokeShape";
 // on the other — and every number it uses is the same constant layer-bake.ts
 // draws with, so the preview and the exported file agree too.
 export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | null>) {
+  // Tracked, not just read at render time. Sizes are fractions of the media
+  // box, and in the studio that box shrinks whenever a sheet (Speed, Volume…)
+  // opens. Read from the ref alone, a caption kept whatever size it had at the
+  // last unrelated re-render — overflowing the shrunken frame, then staying
+  // small after the sheet closed, while the export drew it at the real size.
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = mediaBoxRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setWidth((prev) => (prev === el.clientWidth ? prev : el.clientWidth));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mediaBoxRef]);
+
   return useCallback(
     (layer: Layer) => {
       if (layer.kind === "text") {
-        const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
+        const boxWidth = width || (mediaBoxRef.current?.clientWidth ?? 0);
         const fontPx = layer.fontSize * boxWidth;
         return (
           // Two spans on purpose. The outer one carries a DEFINITE width — the
@@ -80,7 +96,7 @@ export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | n
         // old version drew into a fixed 200px box with a 0-1 viewBox AND
         // vector-effect="non-scaling-stroke", which made stroke-width 0.014 mean
         // 0.014 screen px: placed drawings painted nothing at all.
-        const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
+        const boxWidth = width || (mediaBoxRef.current?.clientWidth ?? 0);
         // Half the thickest stroke: getBBox measures centre lines, and
         // LayerOverlay grows the frame by this so a fat stroke stays inside.
         const strokePad = Math.max(0, ...layer.strokes.map((st) => st.width)) * boxWidth * 0.5;
@@ -103,7 +119,7 @@ export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | n
         // Width only — height follows the image's own aspect, which is exactly
         // what drawStickerLayer does at bake time (baseW, then baseH derived
         // from naturalHeight/naturalWidth).
-        const boxWidth = mediaBoxRef.current?.clientWidth ?? 0;
+        const boxWidth = width || (mediaBoxRef.current?.clientWidth ?? 0);
         return (
           <img
             src={layer.assetUrl}
@@ -121,6 +137,6 @@ export function useLayerRenderer(mediaBoxRef: React.RefObject<HTMLDivElement | n
       }
       return null;
     },
-    [mediaBoxRef],
+    [mediaBoxRef, width],
   );
 }

@@ -289,7 +289,10 @@ export default function FilterPanel({
           <button
             type="button"
             onClick={handleDiscardAndClose}
-            className="text-xs font-medium text-white/60 hover:text-white/80 transition-colors"
+            // A 16px-tall text link was the whole hit area; 44px is the
+            // usual minimum for a thumb, and white/60 on the sheet was below
+            // comfortable contrast for 12px type.
+            className="-ml-3 h-11 px-3 text-sm font-medium text-white/80 hover:text-white transition-colors"
           >
             Cancel
           </button>

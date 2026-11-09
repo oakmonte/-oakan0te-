@@ -487,7 +487,7 @@ function AfterShotIndexPage() {
           {exportError && !exporting && (
             <div
               role="alert"
-              className="oak-motion-enter absolute inset-x-4 bottom-4 z-30 flex items-center gap-3 rounded-xl bg-black/80 py-2 pl-4 pr-2"
+              className="oak-motion-enter absolute inset-x-4 bottom-4 z-30 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-black/80 py-2 pl-4 pr-2"
             >
               <p className="min-w-0 flex-1 text-[13px] text-red-300">{exportError}</p>
               <button
@@ -496,6 +496,20 @@ function AfterShotIndexPage() {
               >
                 Try again
               </button>
+              {/* A phone that can't encode at all (no WebCodecs, or an
+                  encoder that refuses every size) would otherwise be stuck
+                  here for good. The clip as shot still posts. */}
+              {media.type === "video" && (
+                <button
+                  onClick={() => {
+                    setOutput(null);
+                    navigate({ to: "/create/after-shot/publish" });
+                  }}
+                  className="h-9 shrink-0 rounded-full border border-white/40 px-3 text-[13px] font-semibold text-white active:scale-95"
+                >
+                  Post without edits
+                </button>
+              )}
               <button
                 onClick={() => setExportError(null)}
                 aria-label="Dismiss"

@@ -142,6 +142,49 @@ export async function exportVideo(
   onProgress?: ExportProgress,
   adjust: ExtendedPhotoAdjust = EXTENDED_NEUTRAL_ADJUST,
 ): Promise<Blob> {
+  // A device that can't encode at 720p often can at 480p (older Android
+  // encoders, memory-tight iPhones): one smaller try before giving up, as the
+  // studio does (RETRY_LONG_EDGE there).
+  try {
+    return await exportVideoAt(
+      TARGET_LONG_EDGE,
+      blob,
+      filter,
+      intensity,
+      layers,
+      crop,
+      onProgress,
+      adjust,
+    );
+  } catch (err) {
+    console.warn("Video export failed at 720p, retrying smaller:", err);
+    onProgress?.(0);
+    return exportVideoAt(
+      RETRY_LONG_EDGE,
+      blob,
+      filter,
+      intensity,
+      layers,
+      crop,
+      onProgress,
+      adjust,
+    );
+  }
+}
+
+const TARGET_LONG_EDGE = 1280;
+const RETRY_LONG_EDGE = 854;
+
+async function exportVideoAt(
+  maxLongEdge: number,
+  blob: Blob,
+  filter: CameraFilter,
+  intensity: number,
+  layers: Layer[],
+  crop: CropRect | null,
+  onProgress: ExportProgress | undefined,
+  adjust: ExtendedPhotoAdjust,
+): Promise<Blob> {
   const adjustCss = adjustToCss(adjust);
   const vignetteValue = adjust.vignette;
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
@@ -157,8 +200,16 @@ export async function exportVideo(
   // height outright, and a crop lands on odd numbers easily -- which surfaced
   // as "Couldn't make your video". Dropping at most one edge pixel row or
   // column is invisible. The Studio exporter has the same rule (outputSize).
-  const width = evenFloor(cropPx?.w ?? sourceWidth);
-  const height = evenFloor(cropPx?.h ?? sourceHeight);
+  // 720p ceiling, the same product decision as the studio (studio/export.ts
+  // TARGET_LONG_EDGE). A 4K phone clip composited at full size meant ~9x the
+  // pixels through the filter and encoder per frame: minutes on a mid-range
+  // Android, and some hardware H.264 encoders refuse 4K outright. Upload
+  // scales anything bigger down anyway. Never upscales.
+  const frameW = cropPx?.w ?? sourceWidth;
+  const frameH = cropPx?.h ?? sourceHeight;
+  const scale = Math.min(1, maxLongEdge / Math.max(frameW, frameH));
+  const width = evenFloor(frameW * scale);
+  const height = evenFloor(frameH * scale);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -235,7 +286,13 @@ export async function exportVideo(
         // lands at the canvas origin — the canvas being sized to exactly the
         // crop clips the rest for free.
         if (cropPx) {
-          sample.draw(ctx, -cropPx.x, -cropPx.y, sourceWidth, sourceHeight);
+          sample.draw(
+            ctx,
+            -cropPx.x * scale,
+            -cropPx.y * scale,
+            sourceWidth * scale,
+            sourceHeight * scale,
+          );
         } else {
           sample.draw(ctx, 0, 0, width, height);
         }

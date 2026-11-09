@@ -2154,7 +2154,10 @@ function CreatePage() {
       <input
         ref={galleryInputRef}
         type="file"
-        accept="image/*"
+        // Videos too: the handler below already routes a video into the
+        // after-shot editor, but `image/*` alone hid every video in the
+        // phone's picker.
+        accept="image/*,video/*"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
