@@ -8,8 +8,11 @@
  *    in-progress  the seller has done their part, something else has not
  *                 finished yet, and there is nothing more for them to do
  *    done         finished
+ *    skipped      the seller chose to leave it for later -- passed for the
+ *                 checklist's order, but shown grey, never green: it is a
+ *                 choice, not a finished step, and not a warning either
  */
-export type StepState = "todo" | "in-progress" | "done";
+export type StepState = "todo" | "in-progress" | "done" | "skipped";
 
 /** The payout step, which is the only one with a real middle state.
  *

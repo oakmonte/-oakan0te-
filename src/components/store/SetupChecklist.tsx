@@ -47,7 +47,11 @@ function StatusMark({ state }: { state: StepState }) {
     <span
       aria-hidden
       className={`absolute -top-0.5 -right-0.5 grid h-[14px] w-[14px] place-items-center rounded-full ring-2 ring-sd-surface oak-motion-pop ${
-        done ? "bg-sd-success-mark" : "bg-sd-attention-mark"
+        done
+          ? "bg-sd-success-mark"
+          : state === "skipped"
+            ? "bg-sd-ink-faint"
+            : "bg-sd-attention-mark"
       }`}
     >
       {done && (
@@ -74,13 +78,14 @@ function StatusMark({ state }: { state: StepState }) {
 function StatusLabel({ state }: { state: StepState }) {
   if (state === "todo") return null;
   const done = state === "done";
+  const skipped = state === "skipped";
   return (
     <span
       className={`mt-1.5 inline-block text-[11px] font-bold uppercase tracking-[0.06em] ${
-        done ? "text-sd-success-ink" : "text-sd-attention-ink"
+        done ? "text-sd-success-ink" : skipped ? "text-sd-ink-muted" : "text-sd-attention-ink"
       }`}
     >
-      {done ? "Done" : "Pending verification"}
+      {done ? "Done" : skipped ? "Skipped" : "Pending verification"}
     </span>
   );
 }
@@ -119,6 +124,7 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
     setLocationCount,
     locationsSkipped,
     skipLocations,
+    payoutSkipped,
   } = status;
   const [locationsSheetOpen, setLocationsSheetOpen] = useState(false);
   // Both read `navigator` / a media query, so both are set from an effect and
@@ -169,14 +175,16 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
       // state.
       description: payoutSet
         ? "Bank account saved. Nothing else needed from you."
-        : "Add your bank account details so you can get paid.",
+        : payoutSkipped
+          ? "Add your bank account whenever you're ready."
+          : "Add your bank account details so you can get paid.",
       icon: Wallet,
-      done: payoutSet,
+      done: payoutSet || payoutSkipped,
       // done vs state are NOT the same question here, and this is the only
       // step where they diverge. `done` gates the checklist order and
       // `complete`; keying it on verification would block every seller
       // forever, because nothing writes "verified". `state` is display only.
-      state: payoutStepState(payoutSet, payoutStatus),
+      state: !payoutSet && payoutSkipped ? "skipped" : payoutStepState(payoutSet, payoutStatus),
       go: () => navigate({ to: "/store/finance", search: { checklist: true } }),
     },
     {
@@ -185,11 +193,11 @@ export function SetupChecklist({ status }: { status: StoreSetupStatus }) {
       description: locationCount
         ? `${locationCount} location${locationCount === 1 ? "" : "s"} saved — tap to manage.`
         : locationsSkipped
-          ? "Skipped for now. Add one before your first delivery, so couriers can price it."
+          ? "Add one before your first delivery, so couriers can price it."
           : "Add every store or warehouse riders can collect orders from.",
       icon: MapPin,
       done: !!locationCount || locationsSkipped,
-      state: plainStepState(!!locationCount),
+      state: !locationCount && locationsSkipped ? "skipped" : plainStepState(!!locationCount),
       go: () => setLocationsSheetOpen(true),
     },
     // Hidden entirely on desktop rather than shown as an impossible step: a

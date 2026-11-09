@@ -274,9 +274,12 @@ function Tile({ label, value, to }: { label: string; value: ReactNode; to?: "/st
 export function StatTiles({
   productCount,
   payoutVerified,
+  payoutSaved = true,
 }: {
   productCount: number | null;
   payoutVerified: boolean;
+  /** False when the seller skipped the payout sheet. */
+  payoutSaved?: boolean;
 }) {
   // Products listed leads because it is the only true number here, which sets
   // the honesty contract for the three beside it. They show an em-dash, which
@@ -311,9 +314,13 @@ export function StatTiles({
             Next eligible payout
           </span>
           <span className="mt-0.5 block text-[13px] text-sd-ink-muted">
+            {/* Skipped is a normal state, not a warning: sellers add their bank
+                details when the first order makes it matter. */}
             {payoutVerified
               ? "Payouts start after your first order."
-              : "Bank account saved. We’ll confirm it before your first payout."}
+              : payoutSaved
+                ? "Bank account saved. We’ll confirm it before your first payout."
+                : "Add your bank account whenever you’re ready."}
           </span>
         </span>
         <ChevronRight size={16} className="shrink-0 text-sd-ink-muted" />

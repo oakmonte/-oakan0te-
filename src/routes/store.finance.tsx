@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { markPayoutSaved } from "@/hooks/use-store-setup-status";
+import { markPayoutSaved, markPayoutSkipped } from "@/hooks/use-store-setup-status";
+import { useActiveStoreId } from "@/hooks/use-own-store";
 import { useHideStoreNav } from "@/components/store/store-nav";
 import { useEffect, useState } from "react";
 import { Landmark, Clock, Check } from "lucide-react";
@@ -8,13 +9,6 @@ import { authedFetch } from "@/lib/authed-fetch";
 import { isPasskeySupported, needsPasskeyForInstall, needsPasskeyOffer } from "@/lib/auth";
 import { supabase } from "@/lib/integrations/my-supabase/client";
 import { payoutStepState } from "@/lib/setup-step-state";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { DesktopPanel } from "@/components/store/DesktopPanel";
 
 type PayoutAccount = {
@@ -44,7 +38,7 @@ function FinancePage() {
   // undefined = still loading, null = no account saved yet
   const [account, setAccount] = useState<PayoutAccount | null | undefined>(undefined);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [skipPromptOpen, setSkipPromptOpen] = useState(false);
+  const { storeId } = useActiveStoreId();
   const [nextBusy, setNextBusy] = useState(false);
 
   useEffect(() => {
@@ -66,12 +60,19 @@ function FinancePage() {
     };
   }, []);
 
-  // No account yet is exactly the case this checklist step exists to catch —
-  // nudge before letting them past it, rather than silently letting "Next"
-  // skip the one thing this page is for.
+  // No account yet: skip quietly. Bank details only matter once there is an
+  // order to pay out, and sellers come back for them then -- an "Add a payout
+  // account?" prompt here was an interruption, not help. The checklist shows
+  // the step grey ("Skipped"), never green.
+  function skip() {
+    if (storeId) markPayoutSkipped(storeId);
+    setSheetOpen(false);
+    if (checklist) navigate({ to: "/store" });
+  }
+
   function handleNext() {
     if (!account) {
-      setSkipPromptOpen(true);
+      skip();
       return;
     }
     void continueToStore();
@@ -234,6 +235,7 @@ function FinancePage() {
             }
             onSave={handleSave}
             onClose={() => setSheetOpen(false)}
+            onSkip={skip}
           />
         )}
 
@@ -249,40 +251,6 @@ function FinancePage() {
             </button>
           </div>
         )}
-
-        <Dialog open={skipPromptOpen} onOpenChange={setSkipPromptOpen}>
-          <DialogContent className="w-[calc(100%-32px)] max-w-sm gap-7 rounded-[28px] border-sd-line bg-sd-surface px-6 pb-7 pt-8 text-sd-ink">
-            <DialogHeader className="text-left">
-              <DialogTitle className="text-[22px] leading-tight">Add a payout account?</DialogTitle>
-              <DialogDescription className="pt-2 text-[15px] leading-relaxed text-sd-ink-muted">
-                You won&apos;t be able to receive payouts until you add one. You can always come
-                back to this later.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setSkipPromptOpen(false);
-                  setSheetOpen(true);
-                }}
-                className="w-full rounded-2xl bg-sd-ink py-[18px] text-[17px] font-semibold text-sd-bg oak-motion-control active:scale-[0.98]"
-              >
-                Add payout account
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSkipPromptOpen(false);
-                  navigate({ to: "/store" });
-                }}
-                className="w-full rounded-2xl border border-sd-line py-[18px] text-[17px] font-medium text-sd-ink oak-motion-control active:scale-[0.98]"
-              >
-                Continue anyway
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </DesktopPanel>
   );

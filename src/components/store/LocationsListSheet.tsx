@@ -200,7 +200,20 @@ export function LocationsListSheet({
         <span className="font-semibold text-[15px] absolute left-1/2 -translate-x-1/2">
           Pickup locations
         </span>
-        <span className="w-5" />
+        {/* Same solid Skip as the payout sheet's header, so leaving a setup
+            step for later looks the same everywhere. The footer's quieter
+            "Skip for now" stays for thumbs already down there. */}
+        {onSkip && rows?.length === 0 ? (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="h-9 rounded-full bg-sd-ink px-4 text-[14px] font-semibold text-sd-bg active:scale-95 oak-motion-control"
+          >
+            Skip
+          </button>
+        ) : (
+          <span className="w-5" />
+        )}
       </div>
 
       <div className="flex-1 px-4 py-5">

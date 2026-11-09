@@ -86,7 +86,11 @@ function DashboardForStore({
         <div className="flex flex-col gap-6">
           {/* Re-enable <TotalSales onShare={share} /> (and its import) once sellers can take orders. */}
           <SalesAnalytics />
-          <StatTiles productCount={productCount} payoutVerified={payoutStatus === "verified"} />
+          <StatTiles
+            productCount={productCount}
+            payoutVerified={payoutStatus === "verified"}
+            payoutSaved={!!payoutStatus}
+          />
         </div>
         <QuickActions onOpenLocations={() => setLocationsOpen(true)} />
 

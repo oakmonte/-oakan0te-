@@ -295,10 +295,14 @@ export function PayoutAccountSheet({
   initial,
   onSave,
   onClose,
+  onSkip,
 }: {
   initial: PayoutFormValues | null;
   onSave: (values: PayoutFormValues) => Promise<void>;
   onClose: () => void;
+  /** The header's Skip. Falls back to onClose when the host has nothing
+   *  extra to do (no setup checklist to advance). */
+  onSkip?: () => void;
 }) {
   // A full-screen sheet with its own Save bar: the bottom nav steps aside.
   useHideStoreNav(true);
@@ -363,7 +367,15 @@ export function PayoutAccountSheet({
         <span className="font-semibold text-[17px] absolute left-1/2 -translate-x-1/2">
           Payout account
         </span>
-        <span className="w-5" />
+        {/* Payout details aren't needed until the first order, and sellers
+            come back for them then. A plain way out, not a guilt trip. */}
+        <button
+          type="button"
+          onClick={onSkip ?? onClose}
+          className="h-9 rounded-full bg-sd-ink px-4 text-[14px] font-semibold text-sd-bg active:scale-95 oak-motion-control"
+        >
+          Skip
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">

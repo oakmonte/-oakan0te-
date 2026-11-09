@@ -350,7 +350,7 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
               onClick={() => setCreateTypeOpen(true)}
               className="oak-tap w-full max-w-xs h-12 rounded-full bg-sd-ink text-sd-bg text-[15px] font-semibold oak-motion-control active:scale-[0.98]"
             >
-              List a product
+              Add your first product
             </button>
             <p className="mt-8 mb-1 text-[14px] text-sd-ink-muted text-center">
               Your products are currently somewhere else?

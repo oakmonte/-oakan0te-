@@ -58,6 +58,7 @@ const FAN_OFFSET = 0.86;
 const FAN_SPAN = 2.98;
 /** Height the heading, captions and Finish button take, around the phones. */
 const CHROME_H = 330;
+const MIN_HEIGHT_SCALE = 0.3;
 
 const noop = () => {};
 
@@ -170,9 +171,14 @@ function ShowcasePage() {
   // grows to whatever the width AND the height leave room for, with the
   // heading and the Finish button (CHROME_H) taken off the height first.
   const heightFit = vh > 0 ? (vh - CHROME_H) / (PHONE_H + 70) : 1;
-  const scale = fan
-    ? Math.max(0.2, Math.min(0.65, (vw - 40) / (PHONE_W * FAN_SPAN), heightFit))
-    : Math.max(0.2, Math.min(0.5, (vw - 96 - GAP * 2) / (PHONE_W * 3), heightFit));
+  // Height can shrink a phone only down to MIN_HEIGHT_SCALE: a phone held
+  // sideways (375 tall) would otherwise get 78px phones nobody can read.
+  // Below that the page scrolls a little instead. Width always wins, so a
+  // narrow screen never overflows sideways.
+  const byWidth = fan
+    ? Math.min(0.65, (vw - 40) / (PHONE_W * FAN_SPAN))
+    : Math.min(0.5, (vw - 96 - GAP * 2) / (PHONE_W * 3));
+  const scale = Math.min(byWidth, Math.max(MIN_HEIGHT_SCALE, heightFit));
   const phoneW = PHONE_W * scale;
 
   return (
@@ -225,7 +231,10 @@ function ShowcasePage() {
                 {/* In the fan only the front phone has a caption: a side phone's box is
                     just the phone, so both turn about the same point. */}
                 {(!fan || side === 0) && (
-                  <figcaption className="mt-3 text-center">
+                  // Wider than the phone it sits under: boxed to the phone's
+                  // width, the eyebrow broke one word a line on short screens
+                  // and ran into the Finish button.
+                  <figcaption className="relative left-1/2 mt-3 w-max -translate-x-1/2 whitespace-nowrap text-center">
                     <p className="text-[14px] font-semibold">{theme.name}</p>
                     <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text/50">
                       {theme.eyebrow}
