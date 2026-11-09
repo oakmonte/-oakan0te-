@@ -41,6 +41,8 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShowcaseRouteImport } from './routes/showcase'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as StaffRouteImport } from './routes/staff'
+import { Route as StaffOpenRouteImport } from './routes/staff-open'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SwitchingRolesRouteImport } from './routes/switching-roles'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -70,6 +72,8 @@ import { Route as MessagesChatIdRouteImport } from './routes/messages_.$chatId'
 import { Route as OrderOrderIdRouteImport } from './routes/order.$orderId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as ShopStoreUsernameRouteImport } from './routes/shop.$storeUsername'
+import { Route as StaffIndexRouteImport } from './routes/staff.index'
+import { Route as StaffNewStoreRouteImport } from './routes/staff.new-store'
 import { Route as StoreProfileStoreUsernameRouteImport } from './routes/store-profile.$storeUsername'
 import { Route as StoreIndexRouteImport } from './routes/store.index'
 import { Route as StoreCollectionsRouteImport } from './routes/store.collections'
@@ -107,6 +111,11 @@ import { Route as ApiShippingRatesRouteImport } from './routes/api.shipping.rate
 import { Route as ApiShippingReverseGeocodeRouteImport } from './routes/api.shipping.reverse-geocode'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
+import { Route as ApiStaffInboxRouteImport } from './routes/api.staff.inbox'
+import { Route as ApiStaffMeRouteImport } from './routes/api.staff.me'
+import { Route as ApiStaffOpenAsRouteImport } from './routes/api.staff.open-as'
+import { Route as ApiStaffStoresRouteImport } from './routes/api.staff.stores'
+import { Route as ApiStaffUsersRouteImport } from './routes/api.staff.users'
 import { Route as ApiStorePiecesUploadImageRouteImport } from './routes/api.store-pieces.upload-image'
 import { Route as ApiStoreThemeUploadImageRouteImport } from './routes/api.store-theme.upload-image'
 import { Route as ApiStoreConnectionsRouteImport } from './routes/api.store.connections'
@@ -120,6 +129,9 @@ import { Route as ApiSupportMessagesStaffRouteImport } from './routes/api.suppor
 import { Route as CreateAfterShotIndexRouteImport } from './routes/create.after-shot.index'
 import { Route as CreateAfterShotPublishRouteImport } from './routes/create.after-shot.publish'
 import { Route as CreateAfterShotStudioRouteImport } from './routes/create.after-shot.studio'
+import { Route as StaffInboxUserIdRouteImport } from './routes/staff.inbox.$userId'
+import { Route as StaffUsersIndexRouteImport } from './routes/staff.users.index'
+import { Route as StaffUsersUserIdRouteImport } from './routes/staff.users.$userId'
 import { Route as StoreCollectionsIdRouteImport } from './routes/store.collections_.$id'
 import { Route as StoreCollectionsNewRouteImport } from './routes/store.collections_.new'
 import { Route as StoreDropsIdRouteImport } from './routes/store.drops_.$id'
@@ -133,6 +145,8 @@ import { Route as StoreProductsNewRouteImport } from './routes/store.products_.n
 import { Route as StoreProductsNewcomerRouteImport } from './routes/store.products_.newcomer'
 import { Route as StoreProductsUploadRouteImport } from './routes/store.products_.upload'
 import { Route as ApiOrdersOrderIdReceivedRouteImport } from './routes/api.orders.$orderId.received'
+import { Route as ApiStaffSupportUserIdRouteImport } from './routes/api.staff.support.$userId'
+import { Route as ApiStaffUsersUserIdRouteImport } from './routes/api.staff.users.$userId'
 import { Route as ApiStoreLocationsVerifyRouteImport } from './routes/api.store.locations.verify'
 import { Route as ApiStoreOffersOfferIdRouteImport } from './routes/api.store.offers.$offerId'
 import { Route as ApiStoreOrdersOrderIdRouteImport } from './routes/api.store.orders.$orderId'
@@ -299,6 +313,16 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffOpenRoute = StaffOpenRouteImport.update({
+  id: '/staff-open',
+  path: '/staff-open',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoreRoute = StoreRouteImport.update({
   id: '/store',
   path: '/store',
@@ -443,6 +467,16 @@ const ShopStoreUsernameRoute = ShopStoreUsernameRouteImport.update({
   id: '/shop/$storeUsername',
   path: '/shop/$storeUsername',
   getParentRoute: () => rootRouteImport,
+} as any)
+const StaffIndexRoute = StaffIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffNewStoreRoute = StaffNewStoreRouteImport.update({
+  id: '/new-store',
+  path: '/new-store',
+  getParentRoute: () => StaffRoute,
 } as any)
 const StoreProfileStoreUsernameRoute =
   StoreProfileStoreUsernameRouteImport.update({
@@ -631,6 +665,31 @@ const ApiShopifyInstallRoute = ApiShopifyInstallRouteImport.update({
   path: '/api/shopify/install',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStaffInboxRoute = ApiStaffInboxRouteImport.update({
+  id: '/api/staff/inbox',
+  path: '/api/staff/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStaffMeRoute = ApiStaffMeRouteImport.update({
+  id: '/api/staff/me',
+  path: '/api/staff/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStaffOpenAsRoute = ApiStaffOpenAsRouteImport.update({
+  id: '/api/staff/open-as',
+  path: '/api/staff/open-as',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStaffStoresRoute = ApiStaffStoresRouteImport.update({
+  id: '/api/staff/stores',
+  path: '/api/staff/stores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStaffUsersRoute = ApiStaffUsersRouteImport.update({
+  id: '/api/staff/users',
+  path: '/api/staff/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStorePiecesUploadImageRoute =
   ApiStorePiecesUploadImageRouteImport.update({
     id: '/api/store-pieces/upload-image',
@@ -698,6 +757,21 @@ const CreateAfterShotStudioRoute = CreateAfterShotStudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => CreateAfterShotRoute,
 } as any)
+const StaffInboxUserIdRoute = StaffInboxUserIdRouteImport.update({
+  id: '/inbox/$userId',
+  path: '/inbox/$userId',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffUsersIndexRoute = StaffUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => StaffRoute,
+} as any)
+const StaffUsersUserIdRoute = StaffUsersUserIdRouteImport.update({
+  id: '/users/$userId',
+  path: '/users/$userId',
+  getParentRoute: () => StaffRoute,
+} as any)
 const StoreCollectionsIdRoute = StoreCollectionsIdRouteImport.update({
   id: '/collections_/$id',
   path: '/collections/$id',
@@ -764,6 +838,16 @@ const ApiOrdersOrderIdReceivedRoute =
     path: '/received',
     getParentRoute: () => ApiOrdersOrderIdRoute,
   } as any)
+const ApiStaffSupportUserIdRoute = ApiStaffSupportUserIdRouteImport.update({
+  id: '/api/staff/support/$userId',
+  path: '/api/staff/support/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStaffUsersUserIdRoute = ApiStaffUsersUserIdRouteImport.update({
+  id: '/$userId',
+  path: '/$userId',
+  getParentRoute: () => ApiStaffUsersRoute,
+} as any)
 const ApiStoreLocationsVerifyRoute = ApiStoreLocationsVerifyRouteImport.update({
   id: '/api/store/locations/verify',
   path: '/api/store/locations/verify',
@@ -825,6 +909,8 @@ export interface FileRoutesByFullPath {
   '/showcase': typeof ShowcaseRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/staff': typeof StaffRouteWithChildren
+  '/staff-open': typeof StaffOpenRoute
   '/store': typeof StoreRouteWithChildren
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
@@ -852,6 +938,7 @@ export interface FileRoutesByFullPath {
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/shop/$storeUsername': typeof ShopStoreUsernameRoute
+  '/staff/new-store': typeof StaffNewStoreRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
@@ -865,6 +952,7 @@ export interface FileRoutesByFullPath {
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
   '/learn/': typeof LearnIndexRoute
+  '/staff/': typeof StaffIndexRoute
   '/store/': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -891,6 +979,11 @@ export interface FileRoutesByFullPath {
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/staff/inbox': typeof ApiStaffInboxRoute
+  '/api/staff/me': typeof ApiStaffMeRoute
+  '/api/staff/open-as': typeof ApiStaffOpenAsRoute
+  '/api/staff/stores': typeof ApiStaffStoresRoute
+  '/api/staff/users': typeof ApiStaffUsersRouteWithChildren
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/connections': typeof ApiStoreConnectionsRoute
@@ -903,6 +996,8 @@ export interface FileRoutesByFullPath {
   '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
+  '/staff/inbox/$userId': typeof StaffInboxUserIdRoute
+  '/staff/users/$userId': typeof StaffUsersUserIdRoute
   '/store/collections/$id': typeof StoreCollectionsIdRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/drops/$id': typeof StoreDropsIdRoute
@@ -915,8 +1010,11 @@ export interface FileRoutesByFullPath {
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
+  '/staff/users/': typeof StaffUsersIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
+  '/api/staff/support/$userId': typeof ApiStaffSupportUserIdRoute
+  '/api/staff/users/$userId': typeof ApiStaffUsersUserIdRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
@@ -955,6 +1053,7 @@ export interface FileRoutesByTo {
   '/showcase': typeof ShowcaseRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/staff-open': typeof StaffOpenRoute
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
@@ -980,6 +1079,7 @@ export interface FileRoutesByTo {
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/shop/$storeUsername': typeof ShopStoreUsernameRoute
+  '/staff/new-store': typeof StaffNewStoreRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
@@ -993,6 +1093,7 @@ export interface FileRoutesByTo {
   '/store/theme': typeof StoreThemeRoute
   '/create': typeof CreateIndexRoute
   '/learn': typeof LearnIndexRoute
+  '/staff': typeof StaffIndexRoute
   '/store': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -1019,6 +1120,11 @@ export interface FileRoutesByTo {
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/staff/inbox': typeof ApiStaffInboxRoute
+  '/api/staff/me': typeof ApiStaffMeRoute
+  '/api/staff/open-as': typeof ApiStaffOpenAsRoute
+  '/api/staff/stores': typeof ApiStaffStoresRoute
+  '/api/staff/users': typeof ApiStaffUsersRouteWithChildren
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/connections': typeof ApiStoreConnectionsRoute
@@ -1031,6 +1137,8 @@ export interface FileRoutesByTo {
   '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
+  '/staff/inbox/$userId': typeof StaffInboxUserIdRoute
+  '/staff/users/$userId': typeof StaffUsersUserIdRoute
   '/store/collections/$id': typeof StoreCollectionsIdRoute
   '/store/collections/new': typeof StoreCollectionsNewRoute
   '/store/drops/$id': typeof StoreDropsIdRoute
@@ -1043,8 +1151,11 @@ export interface FileRoutesByTo {
   '/store/products/newcomer': typeof StoreProductsNewcomerRoute
   '/store/products/upload': typeof StoreProductsUploadRoute
   '/create/after-shot': typeof CreateAfterShotIndexRoute
+  '/staff/users': typeof StaffUsersIndexRoute
   '/store/playlists': typeof StorePlaylistsIndexRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
+  '/api/staff/support/$userId': typeof ApiStaffSupportUserIdRoute
+  '/api/staff/users/$userId': typeof ApiStaffUsersUserIdRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
@@ -1085,6 +1196,8 @@ export interface FileRoutesById {
   '/showcase': typeof ShowcaseRoute
   '/sign-in': typeof SignInRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/staff': typeof StaffRouteWithChildren
+  '/staff-open': typeof StaffOpenRoute
   '/store': typeof StoreRouteWithChildren
   '/switching-roles': typeof SwitchingRolesRoute
   '/terms': typeof TermsRoute
@@ -1112,6 +1225,7 @@ export interface FileRoutesById {
   '/order/$orderId': typeof OrderOrderIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/shop/$storeUsername': typeof ShopStoreUsernameRoute
+  '/staff/new-store': typeof StaffNewStoreRoute
   '/store-profile/$storeUsername': typeof StoreProfileStoreUsernameRoute
   '/store/collections': typeof StoreCollectionsRoute
   '/store/content': typeof StoreContentRoute
@@ -1125,6 +1239,7 @@ export interface FileRoutesById {
   '/store/theme': typeof StoreThemeRoute
   '/create/': typeof CreateIndexRoute
   '/learn/': typeof LearnIndexRoute
+  '/staff/': typeof StaffIndexRoute
   '/store/': typeof StoreIndexRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
@@ -1151,6 +1266,11 @@ export interface FileRoutesById {
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/staff/inbox': typeof ApiStaffInboxRoute
+  '/api/staff/me': typeof ApiStaffMeRoute
+  '/api/staff/open-as': typeof ApiStaffOpenAsRoute
+  '/api/staff/stores': typeof ApiStaffStoresRoute
+  '/api/staff/users': typeof ApiStaffUsersRouteWithChildren
   '/api/store-pieces/upload-image': typeof ApiStorePiecesUploadImageRoute
   '/api/store-theme/upload-image': typeof ApiStoreThemeUploadImageRoute
   '/api/store/connections': typeof ApiStoreConnectionsRoute
@@ -1163,6 +1283,8 @@ export interface FileRoutesById {
   '/api/support-messages/staff': typeof ApiSupportMessagesStaffRoute
   '/create/after-shot/publish': typeof CreateAfterShotPublishRoute
   '/create/after-shot/studio': typeof CreateAfterShotStudioRoute
+  '/staff/inbox/$userId': typeof StaffInboxUserIdRoute
+  '/staff/users/$userId': typeof StaffUsersUserIdRoute
   '/store/collections_/$id': typeof StoreCollectionsIdRoute
   '/store/collections_/new': typeof StoreCollectionsNewRoute
   '/store/drops_/$id': typeof StoreDropsIdRoute
@@ -1175,8 +1297,11 @@ export interface FileRoutesById {
   '/store/products_/newcomer': typeof StoreProductsNewcomerRoute
   '/store/products_/upload': typeof StoreProductsUploadRoute
   '/create/after-shot/': typeof CreateAfterShotIndexRoute
+  '/staff/users/': typeof StaffUsersIndexRoute
   '/store/playlists/': typeof StorePlaylistsIndexRoute
   '/api/orders/$orderId/received': typeof ApiOrdersOrderIdReceivedRoute
+  '/api/staff/support/$userId': typeof ApiStaffSupportUserIdRoute
+  '/api/staff/users/$userId': typeof ApiStaffUsersUserIdRoute
   '/api/store/locations/verify': typeof ApiStoreLocationsVerifyRoute
   '/api/store/offers/$offerId': typeof ApiStoreOffersOfferIdRoute
   '/api/store/orders/$orderId': typeof ApiStoreOrdersOrderIdRouteWithChildren
@@ -1218,6 +1343,8 @@ export interface FileRouteTypes {
     | '/showcase'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/staff'
+    | '/staff-open'
     | '/store'
     | '/switching-roles'
     | '/terms'
@@ -1245,6 +1372,7 @@ export interface FileRouteTypes {
     | '/order/$orderId'
     | '/profile/$username'
     | '/shop/$storeUsername'
+    | '/staff/new-store'
     | '/store-profile/$storeUsername'
     | '/store/collections'
     | '/store/content'
@@ -1258,6 +1386,7 @@ export interface FileRouteTypes {
     | '/store/theme'
     | '/create/'
     | '/learn/'
+    | '/staff/'
     | '/store/'
     | '/api/account/delete'
     | '/api/bumpa/connect'
@@ -1284,6 +1413,11 @@ export interface FileRouteTypes {
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/staff/inbox'
+    | '/api/staff/me'
+    | '/api/staff/open-as'
+    | '/api/staff/stores'
+    | '/api/staff/users'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/connections'
@@ -1296,6 +1430,8 @@ export interface FileRouteTypes {
     | '/api/support-messages/staff'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
+    | '/staff/inbox/$userId'
+    | '/staff/users/$userId'
     | '/store/collections/$id'
     | '/store/collections/new'
     | '/store/drops/$id'
@@ -1308,8 +1444,11 @@ export interface FileRouteTypes {
     | '/store/products/newcomer'
     | '/store/products/upload'
     | '/create/after-shot/'
+    | '/staff/users/'
     | '/store/playlists/'
     | '/api/orders/$orderId/received'
+    | '/api/staff/support/$userId'
+    | '/api/staff/users/$userId'
     | '/api/store/locations/verify'
     | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
@@ -1348,6 +1487,7 @@ export interface FileRouteTypes {
     | '/showcase'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/staff-open'
     | '/switching-roles'
     | '/terms'
     | '/welcome'
@@ -1373,6 +1513,7 @@ export interface FileRouteTypes {
     | '/order/$orderId'
     | '/profile/$username'
     | '/shop/$storeUsername'
+    | '/staff/new-store'
     | '/store-profile/$storeUsername'
     | '/store/collections'
     | '/store/content'
@@ -1386,6 +1527,7 @@ export interface FileRouteTypes {
     | '/store/theme'
     | '/create'
     | '/learn'
+    | '/staff'
     | '/store'
     | '/api/account/delete'
     | '/api/bumpa/connect'
@@ -1412,6 +1554,11 @@ export interface FileRouteTypes {
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/staff/inbox'
+    | '/api/staff/me'
+    | '/api/staff/open-as'
+    | '/api/staff/stores'
+    | '/api/staff/users'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/connections'
@@ -1424,6 +1571,8 @@ export interface FileRouteTypes {
     | '/api/support-messages/staff'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
+    | '/staff/inbox/$userId'
+    | '/staff/users/$userId'
     | '/store/collections/$id'
     | '/store/collections/new'
     | '/store/drops/$id'
@@ -1436,8 +1585,11 @@ export interface FileRouteTypes {
     | '/store/products/newcomer'
     | '/store/products/upload'
     | '/create/after-shot'
+    | '/staff/users'
     | '/store/playlists'
     | '/api/orders/$orderId/received'
+    | '/api/staff/support/$userId'
+    | '/api/staff/users/$userId'
     | '/api/store/locations/verify'
     | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
@@ -1477,6 +1629,8 @@ export interface FileRouteTypes {
     | '/showcase'
     | '/sign-in'
     | '/sitemap.xml'
+    | '/staff'
+    | '/staff-open'
     | '/store'
     | '/switching-roles'
     | '/terms'
@@ -1504,6 +1658,7 @@ export interface FileRouteTypes {
     | '/order/$orderId'
     | '/profile/$username'
     | '/shop/$storeUsername'
+    | '/staff/new-store'
     | '/store-profile/$storeUsername'
     | '/store/collections'
     | '/store/content'
@@ -1517,6 +1672,7 @@ export interface FileRouteTypes {
     | '/store/theme'
     | '/create/'
     | '/learn/'
+    | '/staff/'
     | '/store/'
     | '/api/account/delete'
     | '/api/bumpa/connect'
@@ -1543,6 +1699,11 @@ export interface FileRouteTypes {
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/staff/inbox'
+    | '/api/staff/me'
+    | '/api/staff/open-as'
+    | '/api/staff/stores'
+    | '/api/staff/users'
     | '/api/store-pieces/upload-image'
     | '/api/store-theme/upload-image'
     | '/api/store/connections'
@@ -1555,6 +1716,8 @@ export interface FileRouteTypes {
     | '/api/support-messages/staff'
     | '/create/after-shot/publish'
     | '/create/after-shot/studio'
+    | '/staff/inbox/$userId'
+    | '/staff/users/$userId'
     | '/store/collections_/$id'
     | '/store/collections_/new'
     | '/store/drops_/$id'
@@ -1567,8 +1730,11 @@ export interface FileRouteTypes {
     | '/store/products_/newcomer'
     | '/store/products_/upload'
     | '/create/after-shot/'
+    | '/staff/users/'
     | '/store/playlists/'
     | '/api/orders/$orderId/received'
+    | '/api/staff/support/$userId'
+    | '/api/staff/users/$userId'
     | '/api/store/locations/verify'
     | '/api/store/offers/$offerId'
     | '/api/store/orders/$orderId'
@@ -1609,6 +1775,8 @@ export interface RootRouteChildren {
   ShowcaseRoute: typeof ShowcaseRoute
   SignInRoute: typeof SignInRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  StaffRoute: typeof StaffRouteWithChildren
+  StaffOpenRoute: typeof StaffOpenRoute
   StoreRoute: typeof StoreRouteWithChildren
   SwitchingRolesRoute: typeof SwitchingRolesRoute
   TermsRoute: typeof TermsRoute
@@ -1654,6 +1822,11 @@ export interface RootRouteChildren {
   ApiShippingReverseGeocodeRoute: typeof ApiShippingReverseGeocodeRoute
   ApiShopifyCallbackRoute: typeof ApiShopifyCallbackRoute
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
+  ApiStaffInboxRoute: typeof ApiStaffInboxRoute
+  ApiStaffMeRoute: typeof ApiStaffMeRoute
+  ApiStaffOpenAsRoute: typeof ApiStaffOpenAsRoute
+  ApiStaffStoresRoute: typeof ApiStaffStoresRoute
+  ApiStaffUsersRoute: typeof ApiStaffUsersRouteWithChildren
   ApiStorePiecesUploadImageRoute: typeof ApiStorePiecesUploadImageRoute
   ApiStoreThemeUploadImageRoute: typeof ApiStoreThemeUploadImageRoute
   ApiStoreConnectionsRoute: typeof ApiStoreConnectionsRoute
@@ -1664,6 +1837,7 @@ export interface RootRouteChildren {
   ApiSupportMessagesMineRoute: typeof ApiSupportMessagesMineRoute
   ApiSupportMessagesReplyRoute: typeof ApiSupportMessagesReplyRoute
   ApiSupportMessagesStaffRoute: typeof ApiSupportMessagesStaffRoute
+  ApiStaffSupportUserIdRoute: typeof ApiStaffSupportUserIdRoute
   ApiStoreLocationsVerifyRoute: typeof ApiStoreLocationsVerifyRoute
 }
 
@@ -1893,6 +2067,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff-open': {
+      id: '/staff-open'
+      path: '/staff-open'
+      fullPath: '/staff-open'
+      preLoaderRoute: typeof StaffOpenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/store': {
       id: '/store'
       path: '/store'
@@ -2095,6 +2283,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/shop/$storeUsername'
       preLoaderRoute: typeof ShopStoreUsernameRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/staff/': {
+      id: '/staff/'
+      path: '/'
+      fullPath: '/staff/'
+      preLoaderRoute: typeof StaffIndexRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/staff/new-store': {
+      id: '/staff/new-store'
+      path: '/new-store'
+      fullPath: '/staff/new-store'
+      preLoaderRoute: typeof StaffNewStoreRouteImport
+      parentRoute: typeof StaffRoute
     }
     '/store-profile/$storeUsername': {
       id: '/store-profile/$storeUsername'
@@ -2355,6 +2557,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShopifyInstallRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/staff/inbox': {
+      id: '/api/staff/inbox'
+      path: '/api/staff/inbox'
+      fullPath: '/api/staff/inbox'
+      preLoaderRoute: typeof ApiStaffInboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/staff/me': {
+      id: '/api/staff/me'
+      path: '/api/staff/me'
+      fullPath: '/api/staff/me'
+      preLoaderRoute: typeof ApiStaffMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/staff/open-as': {
+      id: '/api/staff/open-as'
+      path: '/api/staff/open-as'
+      fullPath: '/api/staff/open-as'
+      preLoaderRoute: typeof ApiStaffOpenAsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/staff/stores': {
+      id: '/api/staff/stores'
+      path: '/api/staff/stores'
+      fullPath: '/api/staff/stores'
+      preLoaderRoute: typeof ApiStaffStoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/staff/users': {
+      id: '/api/staff/users'
+      path: '/api/staff/users'
+      fullPath: '/api/staff/users'
+      preLoaderRoute: typeof ApiStaffUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/store-pieces/upload-image': {
       id: '/api/store-pieces/upload-image'
       path: '/api/store-pieces/upload-image'
@@ -2445,6 +2682,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/create/after-shot/studio'
       preLoaderRoute: typeof CreateAfterShotStudioRouteImport
       parentRoute: typeof CreateAfterShotRoute
+    }
+    '/staff/inbox/$userId': {
+      id: '/staff/inbox/$userId'
+      path: '/inbox/$userId'
+      fullPath: '/staff/inbox/$userId'
+      preLoaderRoute: typeof StaffInboxUserIdRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/staff/users/': {
+      id: '/staff/users/'
+      path: '/users'
+      fullPath: '/staff/users/'
+      preLoaderRoute: typeof StaffUsersIndexRouteImport
+      parentRoute: typeof StaffRoute
+    }
+    '/staff/users/$userId': {
+      id: '/staff/users/$userId'
+      path: '/users/$userId'
+      fullPath: '/staff/users/$userId'
+      preLoaderRoute: typeof StaffUsersUserIdRouteImport
+      parentRoute: typeof StaffRoute
     }
     '/store/collections_/$id': {
       id: '/store/collections_/$id'
@@ -2537,6 +2795,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOrdersOrderIdReceivedRouteImport
       parentRoute: typeof ApiOrdersOrderIdRoute
     }
+    '/api/staff/support/$userId': {
+      id: '/api/staff/support/$userId'
+      path: '/api/staff/support/$userId'
+      fullPath: '/api/staff/support/$userId'
+      preLoaderRoute: typeof ApiStaffSupportUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/staff/users/$userId': {
+      id: '/api/staff/users/$userId'
+      path: '/$userId'
+      fullPath: '/api/staff/users/$userId'
+      preLoaderRoute: typeof ApiStaffUsersUserIdRouteImport
+      parentRoute: typeof ApiStaffUsersRoute
+    }
     '/api/store/locations/verify': {
       id: '/api/store/locations/verify'
       path: '/api/store/locations/verify'
@@ -2613,6 +2885,24 @@ const CreateRouteChildren: CreateRouteChildren = {
 
 const CreateRouteWithChildren =
   CreateRoute._addFileChildren(CreateRouteChildren)
+
+interface StaffRouteChildren {
+  StaffNewStoreRoute: typeof StaffNewStoreRoute
+  StaffIndexRoute: typeof StaffIndexRoute
+  StaffInboxUserIdRoute: typeof StaffInboxUserIdRoute
+  StaffUsersUserIdRoute: typeof StaffUsersUserIdRoute
+  StaffUsersIndexRoute: typeof StaffUsersIndexRoute
+}
+
+const StaffRouteChildren: StaffRouteChildren = {
+  StaffNewStoreRoute: StaffNewStoreRoute,
+  StaffIndexRoute: StaffIndexRoute,
+  StaffInboxUserIdRoute: StaffInboxUserIdRoute,
+  StaffUsersUserIdRoute: StaffUsersUserIdRoute,
+  StaffUsersIndexRoute: StaffUsersIndexRoute,
+}
+
+const StaffRouteWithChildren = StaffRoute._addFileChildren(StaffRouteChildren)
 
 interface StoreRouteChildren {
   StoreCollectionsRoute: typeof StoreCollectionsRoute
@@ -2705,6 +2995,18 @@ const ApiOrdersRouteWithChildren = ApiOrdersRoute._addFileChildren(
   ApiOrdersRouteChildren,
 )
 
+interface ApiStaffUsersRouteChildren {
+  ApiStaffUsersUserIdRoute: typeof ApiStaffUsersUserIdRoute
+}
+
+const ApiStaffUsersRouteChildren: ApiStaffUsersRouteChildren = {
+  ApiStaffUsersUserIdRoute: ApiStaffUsersUserIdRoute,
+}
+
+const ApiStaffUsersRouteWithChildren = ApiStaffUsersRoute._addFileChildren(
+  ApiStaffUsersRouteChildren,
+)
+
 interface ApiStoreOffersRouteChildren {
   ApiStoreOffersOfferIdRoute: typeof ApiStoreOffersOfferIdRoute
 }
@@ -2777,6 +3079,8 @@ const rootRouteChildren: RootRouteChildren = {
   ShowcaseRoute: ShowcaseRoute,
   SignInRoute: SignInRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  StaffRoute: StaffRouteWithChildren,
+  StaffOpenRoute: StaffOpenRoute,
   StoreRoute: StoreRouteWithChildren,
   SwitchingRolesRoute: SwitchingRolesRoute,
   TermsRoute: TermsRoute,
@@ -2822,6 +3126,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShippingReverseGeocodeRoute: ApiShippingReverseGeocodeRoute,
   ApiShopifyCallbackRoute: ApiShopifyCallbackRoute,
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
+  ApiStaffInboxRoute: ApiStaffInboxRoute,
+  ApiStaffMeRoute: ApiStaffMeRoute,
+  ApiStaffOpenAsRoute: ApiStaffOpenAsRoute,
+  ApiStaffStoresRoute: ApiStaffStoresRoute,
+  ApiStaffUsersRoute: ApiStaffUsersRouteWithChildren,
   ApiStorePiecesUploadImageRoute: ApiStorePiecesUploadImageRoute,
   ApiStoreThemeUploadImageRoute: ApiStoreThemeUploadImageRoute,
   ApiStoreConnectionsRoute: ApiStoreConnectionsRoute,
@@ -2832,6 +3141,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSupportMessagesMineRoute: ApiSupportMessagesMineRoute,
   ApiSupportMessagesReplyRoute: ApiSupportMessagesReplyRoute,
   ApiSupportMessagesStaffRoute: ApiSupportMessagesStaffRoute,
+  ApiStaffSupportUserIdRoute: ApiStaffSupportUserIdRoute,
   ApiStoreLocationsVerifyRoute: ApiStoreLocationsVerifyRoute,
 }
 export const routeTree = rootRouteImport

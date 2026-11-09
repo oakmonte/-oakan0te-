@@ -63,6 +63,9 @@ export function surfaceForPathname(pathname: string): Surface {
     pathname === "/creators"
   )
     return "marketing";
+  // The staff back-office is plain white too, whatever the phone's setting.
+  if (pathname === "/staff" || pathname.startsWith("/staff/") || pathname === "/staff-open")
+    return "marketing";
   return null;
 }
 

@@ -23,7 +23,7 @@ export type HierarchyContext = {
 
 /** Screens with nothing above them. Swiping back from one of these should
  *  leave the app, which it does once they sit at history index 0. */
-const ROOT_PATHS = new Set(["/", "/home", "/messages", "/cart"]);
+const ROOT_PATHS = new Set(["/", "/home", "/messages", "/cart", "/staff"]);
 
 /** Trees this module deliberately does not manage.
  *
@@ -64,6 +64,9 @@ const UNMANAGED_PATHS = new Set([
   "/find-your-fit",
   "/where-did-you-hear-about-us",
   "/switching-roles",
+  // Lands a staff "open as client" link in a private window, then replaces
+  // itself with /store.
+  "/staff-open",
 ]);
 
 export function isUnmanaged(pathname: string): boolean {
@@ -131,6 +134,13 @@ export function parentOf(
 
     // Everything else under /store is a drawer sibling.
     return { to: "/store" };
+  }
+
+  // Staff back-office: a thread or an account goes up to its list; the other
+  // tabs are siblings of the inbox.
+  if (seg[0] === "staff") {
+    if (seg[1] === "users" && seg.length > 2) return { to: "/staff/users" };
+    return { to: "/staff" };
   }
 
   switch (pathname) {
