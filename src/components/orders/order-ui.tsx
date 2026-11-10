@@ -87,14 +87,14 @@ const PALETTE = {
 const WAITING: Record<OrderSide, Partial<Record<TimelineKey, string>>> = {
   seller: {
     paid: "Waiting for the buyer to pay",
-    shipped: "Waiting for you to book the courier",
-    delivered: "With the courier",
+    shipped: "Waiting for you to send it",
+    delivered: "On its way to the buyer",
     refund_owed: "Oakmonte is sending it back by hand",
   },
   buyer: {
     paid: "Waiting for your payment",
     shipped: "The seller is getting it ready",
-    delivered: "With the courier",
+    delivered: "On its way to you",
     refund_owed: "Being arranged",
   },
 };
