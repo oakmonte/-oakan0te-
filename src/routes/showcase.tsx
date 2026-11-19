@@ -345,6 +345,29 @@ function PhonePreview({
     };
   }, [motion]);
 
+  // "cards": the floating-cards hero first, then the page scrolls down into
+  // the store's collections and products, the way a buyer would, and back up.
+  // It used to stop at the hero, so the middle phone never showed a single
+  // product -- the one thing a storefront is for.
+  useEffect(() => {
+    if (motion !== "cards") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const at = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+    const to = (top: number) => el.scrollTo({ top, behavior: "smooth" });
+    const cycle = () => {
+      at(3500, () => to(PHONE_H * 0.85));
+      at(6500, () => to(PHONE_H * 1.7));
+      at(9500, () => to(PHONE_H * 2.5));
+      at(12500, () => to(0));
+      at(14500, cycle);
+    };
+    cycle();
+    return () => timers.forEach(clearTimeout);
+  }, [motion]);
+
   useEffect(() => {
     if (motion !== "float") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;

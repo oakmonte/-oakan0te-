@@ -585,7 +585,10 @@ export function PostFeed({
           <div
             ref={containerRef}
             className="h-full w-full overflow-y-auto"
-            style={{ scrollSnapType: "y mandatory" }}
+            // contain: at the first or last post the scroll stops here instead
+            // of carrying on into the page behind (the whole site bouncing, or
+            // iOS pull-to-refresh, mid-feed).
+            style={{ scrollSnapType: "y mandatory", overscrollBehaviorY: "contain" }}
           >
             {posts.map((post) => (
               <FeedPostCard
@@ -630,7 +633,7 @@ function BackToStartCard({ scroller }: { scroller: RefObject<HTMLDivElement | nu
   return (
     <div
       className="flex h-full w-full flex-col items-center justify-center gap-4 bg-black px-8 text-center text-white"
-      style={{ scrollSnapAlign: "start" }}
+      style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
     >
       <p className="text-[17px] font-semibold">You're all caught up</p>
       <button
@@ -1204,7 +1207,11 @@ function FeedPostCard({
   // 88px over the nav clears its 60px pill plus its gap. A storefront's bar
   // is taller (glass round buttons either side of the pill) and the rail sat
   // on top of it, so the storefront feed lifts its chrome further.
-  const chromeBottom = `calc(env(safe-area-inset-bottom) + ${storefront ? 150 : overNav ? 88 : 20}px)`;
+  // The full-screen viewer (a profile's posts, no nav underneath) used 20px,
+  // which sat the rail's last buttons in the bottom corner, under the thumb's
+  // resting spot and well below where TikTok/Reels put them; 64 lifts the rail
+  // and caption together into the lower third.
+  const chromeBottom = `calc(env(safe-area-inset-bottom) + ${storefront ? 150 : overNav ? 88 : 64}px)`;
   const mediaFit = fitContain ? "object-contain" : "object-cover";
   useEffect(() => {
     const el = cardRef.current;
@@ -1470,7 +1477,9 @@ function FeedPostCard({
       ref={cardRef}
       data-post-id={post.id}
       className={`relative w-full h-full text-white ${railOutside ? "" : "bg-neutral-950"}`}
-      style={{ scrollSnapAlign: "start" }}
+      // "always": one post per swipe, however hard the flick -- without it a
+      // fling skipped several posts and started (and dropped) a video for each.
+      style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
     >
       <MediaBox outside={railOutside}>
         {/* Profile viewer only: the post keeps its own shape (contained, never
