@@ -206,6 +206,8 @@ function AfterShotStudio({ project, sources }: { project: StudioProject; sources
           blob: result.blob,
           url: result.url,
           poster: result.poster,
+          // The studio hands back the same blob when nothing changed.
+          studioEdited: result.blob !== media.blob || !!media.studioEdited,
         });
         // setMedia drops the crop for a new file, since it was a fraction of a
         // frame that may no longer exist. When the studio kept the frame's

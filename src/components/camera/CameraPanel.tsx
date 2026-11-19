@@ -77,6 +77,12 @@ export default function CameraPanel({
       {/* Panel */}
       <div
         ref={panelRef}
+        // Closed panels stay mounted below the screen (so they can slide in).
+        // pointer-events alone left every button in them reachable by
+        // keyboard and screen readers -- the Sound panel's 20 genre chips
+        // were read out on a screen that showed none of them.
+        inert={!open}
+        aria-hidden={!open}
         className="fixed left-0 right-0 z-50 flex flex-col transition-transform duration-300 ease-out"
         style={{
           bottom: 0,

@@ -66,6 +66,10 @@ export type CapturedMedia = {
    *  single obvious still, and the marketplace needs one — so whoever composes
    *  the post reads this instead of grabbing frame zero. */
   poster?: { blob: Blob; url: string };
+  /** Set when this is the studio's render rather than the raw capture: the
+   *  seller's trims, splits and speed changes are inside the file, so the
+   *  after-shot screen counts it as work worth asking about before discarding. */
+  studioEdited?: boolean;
 };
 
 let pending: CapturedMedia | null = null;

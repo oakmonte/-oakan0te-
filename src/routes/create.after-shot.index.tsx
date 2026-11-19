@@ -357,6 +357,7 @@ function AfterShotIndexPage() {
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const hasWork =
     layers.length > 0 ||
+    Boolean(media.studioEdited) ||
     Boolean(media.audio) ||
     edits.filterId !== NO_EDITS.filterId ||
     edits.cropRect !== null ||

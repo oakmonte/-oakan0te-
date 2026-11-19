@@ -223,6 +223,13 @@ export function usePlayback(project: StudioProject): PlaybackApi {
     [publish, syncElements],
   );
 
+  // A delete, trim or speed-up can shorten the timeline under a parked
+  // playhead. Only seek() clamped, so the clock read "5.8 / 5.6" and the
+  // preview showed a frame from a time that no longer existed.
+  useEffect(() => {
+    if (timeRef.current > duration) seek(duration);
+  }, [duration, seek]);
+
   // WebKit lifts its gesture requirement PER ELEMENT, and only after that
   // element has played once inside a real user gesture. Every clip owns its own
   // <video>, so clip 1 is unlocked by the Play tap and clip 2 is first played
