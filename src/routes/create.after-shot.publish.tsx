@@ -488,9 +488,11 @@ function PublishPage() {
         </button> */}
       </div>
 
-      {/* Footer */}
+      {/* Footer. On a tablet or laptop the buttons line up with the form's
+          own max-w-md column above them, instead of stretching edge to edge;
+          the white fade still runs the full width behind them. */}
       <div
-        className="fixed left-0 right-0 bottom-0 flex gap-3 px-4 pt-3"
+        className="fixed left-0 right-0 bottom-0 flex gap-3 px-4 pt-3 md:px-[max(1rem,calc((100%_-_28rem)/2))]"
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)",
           background: "linear-gradient(to top, #fff 60%, rgba(255,255,255,0))",
