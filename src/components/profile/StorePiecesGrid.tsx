@@ -58,7 +58,7 @@ export function StorePiecesGrid({
 
   if (isPending) {
     return (
-      <div className="grid grid-cols-3 gap-0.5">
+      <div className="grid grid-cols-3 gap-0.5 md:grid-cols-4 lg:grid-cols-5">
         {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="aspect-square bg-chat-text/[0.06] animate-pulse" />
         ))}
@@ -72,7 +72,7 @@ export function StorePiecesGrid({
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-0.5">
+      <div className="grid grid-cols-3 gap-0.5 md:grid-cols-4 lg:grid-cols-5">
         {/* Leading "+" tile rather than only offering Add from the empty
             state, so there's always an add affordance once the grid already
             has pieces in it. */}

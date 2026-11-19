@@ -138,13 +138,17 @@ export function BottomNav({ active, ownUsername }: BottomNavProps) {
           to: "/store-profile/$storeUsername",
           params: { storeUsername: ownStoreUsername },
         }
-      : {
-          key: "profile",
-          label: "Profile",
-          icon: profileIcon,
-          to: "/profile/$username",
-          params: ownUsername ? { username: ownUsername } : undefined,
-        },
+      : ownUsername
+        ? {
+            key: "profile",
+            label: "Profile",
+            icon: profileIcon,
+            to: "/profile/$username",
+            params: { username: ownUsername },
+          }
+        : // No username yet (signed out, or a guest session): there is no
+          // profile to show. This used to link to /profile/undefined.
+          { key: "profile", label: "Profile", icon: profileIcon, to: "/sign-in" },
   ];
 
   const trackRef = useRef<HTMLDivElement>(null);

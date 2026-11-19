@@ -62,12 +62,16 @@ const FOLDERS: { key: Folder; label: string }[] = [
   { key: "orders", label: "Orders" },
 ];
 
-/** lg (1024px) and up, the two-pane Messages layout; a portrait tablet keeps the one-column list. False on the server and until
- *  mounted, so the first paint is the phone layout. */
+/** md (768px) and up, the two-pane Messages layout -- portrait tablets
+ *  included, the way messaging apps lay out an iPad. The one-column list
+ *  used to run up to 1023px, which on a portrait tablet left a 680px strip
+ *  in the middle of the screen with side borders that stopped where the
+ *  chats did. False on the server and until mounted, so the first paint is
+ *  the phone layout. */
 function useIsDesktop(): boolean {
   const [desktop, setDesktop] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
+    const mq = window.matchMedia("(min-width: 768px)");
     const sync = () => setDesktop(mq.matches);
     sync();
     mq.addEventListener("change", sync);
@@ -568,7 +572,7 @@ export function MessagesView({
       <div
         className={
           desktop
-            ? "grid h-[calc(100dvh-7rem)] w-full grid-cols-[minmax(340px,420px)_1fr] overflow-hidden"
+            ? "grid h-[calc(100dvh-7rem)] w-full grid-cols-[minmax(300px,340px)_1fr] overflow-hidden lg:grid-cols-[minmax(340px,420px)_1fr]"
             : "contents"
         }
       >
@@ -761,7 +765,9 @@ export function MessagesView({
                   onBack={backToInbox}
                   onToast={report}
                 />
-              ) : (
+              ) : signedOut ? null : (
+                // Signed out, the left pane already says why there's nothing
+                // here; "Pick a chat" beside it read as a second, broken screen.
                 <div className="flex h-full flex-col items-center justify-center px-10 text-center">
                   <Avatar kind="support" name="Oakmonte" size={64} />
                   <p className="mt-5 text-[19px] font-bold">Pick a chat</p>

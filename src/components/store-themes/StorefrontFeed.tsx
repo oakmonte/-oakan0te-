@@ -111,9 +111,13 @@ export function StorefrontFeed({
       (el) => el.style.scrollSnapType === "y mandatory",
     );
     if (!scroller) return;
-    // Endless both ways: up from the first post jumps (invisibly) to its copy
-    // further down, so the arrow carries on to the last post.
-    if (dir === -1 && scroller.scrollTop < 2) scroller.scrollTop = scroller.scrollHeight / 2;
+    // Down from the "all caught up" card goes back to the first post. (The
+    // feed no longer draws its posts twice, so there is no copy to wrap to.)
+    const atEnd = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+    if (dir === 1 && atEnd) {
+      scroller.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     scroller.scrollBy({ top: dir * scroller.clientHeight, behavior: "smooth" });
   }
 

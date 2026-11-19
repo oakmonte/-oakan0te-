@@ -334,9 +334,11 @@ export function PostFeed({
    *  own, instead of over it. The post is drawn rounded, RAIL_OUTSIDE_W short
    *  of the feed's width. */
   railOutside?: boolean;
-  /** Endless: past the last post the feed carries on from the first. The posts
-   *  are drawn twice and the scroll is moved back by one copy, invisibly, the
-   *  moment it reaches the second copy -- the snap points line up exactly. */
+  /** Endless in spirit: after the last post comes a "back to the start" card
+   *  rather than the end of the scroll. It used to draw every post twice and
+   *  jump the scroll back a copy's height; with only a few posts the copies
+   *  sat side by side, iOS ignores a scroll jump during a fling (so viewers
+   *  landed on the duplicate), and it doubled the <video>s on the page. */
   loop?: boolean;
   /** Called with whichever post is currently filling the screen, including on
    *  every scroll to a new one. Explore uses it to keep its Listed items tab
@@ -584,19 +586,10 @@ export function PostFeed({
             ref={containerRef}
             className="h-full w-full overflow-y-auto"
             style={{ scrollSnapType: "y mandatory" }}
-            onScroll={
-              looping
-                ? (e) => {
-                    const el = e.currentTarget;
-                    const copy = posts.length * el.clientHeight;
-                    if (el.scrollTop >= copy - 1) el.scrollTop -= copy;
-                  }
-                : undefined
-            }
           >
-            {(looping ? [...posts, ...posts] : posts).map((post, i) => (
+            {posts.map((post) => (
               <FeedPostCard
-                key={i < posts.length ? post.id : `${post.id}-again`}
+                key={post.id}
                 post={post}
                 viewerId={viewerId}
                 isProfileViewer={scope.type === "user"}
@@ -609,6 +602,7 @@ export function PostFeed({
                 onSwipePastEnd={onSwipePastEnd}
               />
             ))}
+            {looping && <BackToStartCard scroller={containerRef} />}
           </div>
           {scope.type === "author" && posts.length > 1 && <ScrollHint scroller={containerRef} />}
         </motion.div>
@@ -627,6 +621,27 @@ export function PostFeed({
     return createPortal(body, document.body);
   }
   return <>{body}</>;
+}
+
+/** The card after the last post in a looping feed: one tap back to the
+ *  first post. A full-height snap page like the posts, so the fling lands on
+ *  it cleanly instead of on a duplicate of the first post. */
+function BackToStartCard({ scroller }: { scroller: RefObject<HTMLDivElement | null> }) {
+  return (
+    <div
+      className="flex h-full w-full flex-col items-center justify-center gap-4 bg-black px-8 text-center text-white"
+      style={{ scrollSnapAlign: "start" }}
+    >
+      <p className="text-[17px] font-semibold">You're all caught up</p>
+      <button
+        type="button"
+        onClick={() => scroller.current?.scrollTo({ top: 0, behavior: "smooth" })}
+        className="h-11 rounded-full bg-white px-6 text-[15px] font-semibold text-black active:scale-95"
+      >
+        Watch from the start
+      </button>
+    </div>
+  );
 }
 
 /** First visit to a store's feed: a floating up-arrow and "Swipe up to see
@@ -1207,6 +1222,10 @@ function FeedPostCard({
     return () => ro.disconnect();
   }, [fitContain, railOutside, aspect]);
   const firstMedia = post.media[0];
+  const coverStill =
+    post.thumbnail_url ??
+    firstMedia?.thumbnail ??
+    (firstMedia && firstMedia.type !== "video" ? firstMedia.url : null);
   const backdropUrl =
     post.thumbnail_url ??
     firstMedia?.thumbnail ??
@@ -1223,6 +1242,23 @@ function FeedPostCard({
     if (!el) return;
     const io = new IntersectionObserver(([entry]) => setOnScreen(entry.intersectionRatio >= 0.6), {
       threshold: [0, 0.6, 1],
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Whether this card is on screen or one screen away. Only those cards mount
+  // their <video>s (and the blurred backdrop); the rest show the cover still.
+  // Every card used to keep a live <video>, and iOS can only decode a handful
+  // at once -- past that it hands back garbled, half-drawn frames mid-scroll.
+  // One screen of margin means the next post is already loading before the
+  // finger gets there.
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+      rootMargin: "100% 0px",
     });
     io.observe(el);
     return () => io.disconnect();
@@ -1292,6 +1328,9 @@ function FeedPostCard({
   }, [
     onScreen,
     userPaused,
+    // The <video> mounts when the card comes near; a fast fling can make it
+    // the on-screen card in the same moment, before the element existed.
+    near,
     post.id,
     post.audio_attribution,
     post.audio_name,
@@ -1440,7 +1479,7 @@ function FeedPostCard({
           rather than flat black bars. Explore stays edge-to-edge cover. A
           still is enough for the backdrop; a second playing video per card
           would double the decode work for something nobody looks at. */}
-        {fitContain && backdropUrl && (
+        {fitContain && backdropUrl && near && (
           <div className="absolute inset-0 overflow-hidden" aria-hidden>
             <img
               src={backdropUrl}
@@ -1452,7 +1491,17 @@ function FeedPostCard({
           </div>
         )}
 
-        {isCarousel ? (
+        {!near && (isCarousel || isVideo) ? (
+          // Off screen: the cover still, no decoder. See `near` above.
+          coverStill ? (
+            <img
+              src={coverStill}
+              alt=""
+              loading="lazy"
+              className={`absolute inset-0 w-full h-full ${mediaFit}`}
+            />
+          ) : null
+        ) : isCarousel ? (
           <PostCarousel
             media={post.media}
             fit={mediaFit}

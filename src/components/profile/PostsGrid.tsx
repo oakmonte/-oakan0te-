@@ -110,7 +110,7 @@ export function PostsGrid({
   // the skeleton already reserved instead of shoving the page around.
   if (isPending) {
     return (
-      <div className="grid grid-cols-3 gap-0.5">
+      <div className="grid grid-cols-3 gap-0.5 md:grid-cols-4 lg:grid-cols-5">
         {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="aspect-[3/4] bg-chat-text/[0.06] animate-pulse" />
         ))}
@@ -124,7 +124,7 @@ export function PostsGrid({
     <>
       {/* 3:4 tiles, taller than the old squares: posts are portrait, and a
           square crop cut off most of each one. */}
-      <div className="grid grid-cols-3 gap-0.5">
+      <div className="grid grid-cols-3 gap-0.5 md:grid-cols-4 lg:grid-cols-5">
         {/* Newest first, same as the grid: the most recent post in front. */}
         {[...pending]
           .sort((a, b) => b.jobId - a.jobId)
