@@ -287,7 +287,9 @@ function EditProfilePage() {
       className="min-h-screen bg-black text-white"
       style={{ fontFamily: "'SF Pro', system-ui, sans-serif" }}
     >
-      <div className="flex items-center justify-center relative px-6 pt-4 pb-4">
+      {/* Tablets and up: one readable column. Full width, each row's label
+          and value ended up a whole screen apart. */}
+      <div className="flex items-center justify-center relative px-6 pt-4 pb-4 md:mx-auto md:max-w-[560px]">
         {/* Reachable from Settings AND straight from the profile header, so
             the right parent is whichever is actually behind us — useBack
             resolves that from the stack rather than guessing. */}
@@ -295,7 +297,7 @@ function EditProfilePage() {
         <h1 className="text-[16px] font-bold">Edit profile</h1>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="md:mx-auto md:max-w-[560px]">
         {/* Profile picture — the only image field. The whole label (photo
             included, not just the "Change photo" text) opens the picker. */}
         <label className="flex flex-col items-center gap-2 mt-2 mb-6 cursor-pointer">
