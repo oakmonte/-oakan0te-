@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useSession } from "@/hooks/use-session";
-import { staffApi } from "@/lib/staff-api";
+import { isStaffDemo, staffApi } from "@/lib/staff-api";
 
 // The staff back-office shell. Whether to show it is decided by
 // /api/staff/me, which checks public.staff_members server-side -- but that
@@ -29,7 +29,7 @@ function StaffLayout() {
 
   useEffect(() => {
     if (loading) return;
-    if (!session) {
+    if (!session && !isStaffDemo()) {
       setState("denied");
       return;
     }
