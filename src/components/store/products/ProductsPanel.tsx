@@ -404,14 +404,14 @@ export function ProductsPanel({ checklist }: { checklist?: boolean }) {
             onClick={() => setCreateTypeOpen(true)}
             className="oak-tap w-full h-12 bg-sd-ink text-sd-bg text-[15px] font-semibold rounded-full oak-motion-control active:scale-[0.98]"
           >
-            Keep listing
+            Add more products now
           </button>
           <button
             type="button"
             onClick={() => navigate({ to: "/store" })}
             className="oak-tap w-full h-12 border border-sd-line text-sd-ink text-[15px] font-semibold rounded-full oak-motion-control active:scale-[0.98]"
           >
-            Next
+            Move to next step
           </button>
         </div>
       )}

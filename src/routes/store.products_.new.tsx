@@ -59,7 +59,7 @@ export const Route = createFileRoute("/store/products_/new")({
   // landing on the variant default — the in-page regular/variant switch
   // stays as the fallback for anyone who arrives without picking first.
   // `checklist` rides along from the setup checklist's product step, so that
-  // saving lands back on a list that still offers "Keep listing" and "Next".
+  // saving lands back on a list that still offers "Add more products now" and "Move to next step".
   validateSearch: (
     search: Record<string, unknown>,
   ): { kind?: ProductKind; checklist?: boolean } => ({
