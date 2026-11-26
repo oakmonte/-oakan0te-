@@ -2160,17 +2160,35 @@ export function ThemePreviewSheet({
           </p>
         )}
         <div ref={stageRef} className="flex min-h-0 w-full flex-1 justify-center">
+          {/* Only Desktop on a too-small screen (an iPad, a phone) is drawn
+              smaller. That used to be CSS `zoom`, which Safari applies unlike
+              Chrome -- rem-based radii and the frame's shape came out wrong on
+              iPads while every Chrome test looked right. So the shrunk case is
+              now a box of the drawn size holding the full-size frame scaled
+              down with a transform, which every browser draws the same.
+              Unshrunk (zoom 1) nothing is transformed, so the storefront's
+              fixed-position sheets still anchor to the screen as before; in
+              the shrunk case they anchor to the frame, i.e. stay inside the
+              preview, which is what a preview should do anyway. */}
           <div
-            className={`relative shrink-0 overflow-hidden border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)] ${
-              device === "desktop"
-                ? "rounded-2xl"
-                : "rounded-t-[2.5rem] border-b-0 sm:rounded-b-[2.5rem] sm:border-b-[3px]"
-            }`}
-            // zoom, not transform: layout follows it, so the frame takes only
-            // its drawn size, and fixed pieces inside aren't re-anchored to it.
-            style={{ width: frame.w, height: frame.h, zoom: frame.zoom }}
+            className="shrink-0"
+            style={{ width: frame.w * frame.zoom, height: frame.h * frame.zoom }}
           >
-            {/* overflow-y-auto alone makes the x axis scrollable too, and edit
+            <div
+              className={`relative shrink-0 overflow-hidden border-[3px] border-neutral-900 bg-neutral-900 shadow-[0_30px_80px_rgba(0,0,0,0.55)] ${
+                device === "desktop"
+                  ? "rounded-2xl"
+                  : "rounded-t-[2.5rem] border-b-0 sm:rounded-b-[2.5rem] sm:border-b-[3px]"
+              }`}
+              style={{
+                width: frame.w,
+                height: frame.h,
+                ...(frame.zoom < 1
+                  ? { transform: `scale(${frame.zoom})`, transformOrigin: "top left" }
+                  : null),
+              }}
+            >
+              {/* overflow-y-auto alone makes the x axis scrollable too, and edit
               mode carries things that poke past the frame's right edge (the
               remove dots, counter-scaled fields), so the whole storefront
               could be dragged sideways — and iOS scrolled it sideways on its
@@ -2179,26 +2197,27 @@ export function ThemePreviewSheet({
               a scroll container computes to hidden, which is still
               programmatically scrollable, and that is exactly what focus
               does. */}
-            <div className="h-full overflow-y-auto">
-              {/* @container: the storefront's wide layout answers to this
+              <div className="h-full overflow-y-auto">
+                {/* @container: the storefront's wide layout answers to this
                 frame's width, so Desktop shows the real laptop layout and
                 Phone stays a phone on a laptop. */}
-              <div className="@container overflow-x-clip">
-                <FullPreview
-                  themeId={theme.id}
-                  editing={editingProps}
-                  storeId={storeId}
-                  brandName={brandName}
-                />
+                <div className="@container overflow-x-clip">
+                  <FullPreview
+                    themeId={theme.id}
+                    editing={editingProps}
+                    storeId={storeId}
+                    brandName={brandName}
+                  />
+                </div>
               </div>
+              {hint && (
+                // w-max + a cap: a bare left-1/2 box is only half the frame
+                // wide, so longer hints broke into a lumpy two-line pill.
+                <div className="pointer-events-none absolute bottom-4 left-1/2 w-max max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-black/80 px-4 py-2 text-center text-[13px] leading-snug text-white backdrop-blur">
+                  {hint}
+                </div>
+              )}
             </div>
-            {hint && (
-              // w-max + a cap: a bare left-1/2 box is only half the frame
-              // wide, so longer hints broke into a lumpy two-line pill.
-              <div className="pointer-events-none absolute bottom-4 left-1/2 w-max max-w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-black/80 px-4 py-2 text-center text-[13px] leading-snug text-white backdrop-blur">
-                {hint}
-              </div>
-            )}
           </div>
         </div>
       </div>
