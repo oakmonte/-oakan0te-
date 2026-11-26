@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useHideStoreNav } from "@/components/store/store-nav";
 import { Check, Plus, Search, X } from "lucide-react";
 import { useLockedViewport } from "@/hooks/use-locked-viewport";
@@ -304,13 +304,15 @@ export function PayoutAccountSheet({
    *  extra to do (no setup checklist to advance). */
   onSkip?: () => void;
 }) {
-  // A full-screen sheet with its own Save bar: the bottom nav steps aside.
+  // A full-screen sheet: the bottom nav steps aside. Save sits right under
+  // the form, not in a bar at the screen bottom, where the keyboard hid it.
   useHideStoreNav(true);
   useLockedViewport();
 
   const [bankName, setBankName] = useState(initial?.bankName ?? "");
   const [accountNumber, setAccountNumber] = useState(initial?.accountNumber ?? "");
   const [saving, setSaving] = useState(false);
+  const saveRef = useRef<HTMLButtonElement>(null);
   const [showErrors, setShowErrors] = useState(false);
   // A failed save used to do nothing at all -- the spinner stopped, the sheet
   // stayed open, and the seller was left to guess whether their bank details
@@ -378,7 +380,7 @@ export function PayoutAccountSheet({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
+      <div className="overflow-y-auto px-4 py-5 flex flex-col gap-6 flex-1">
         <div>
           <p className="text-[19px] font-semibold text-sd-ink mb-1">Bank name</p>
           <p className="text-[14px] text-sd-ink-muted mb-3">Pick one or type your own.</p>
@@ -440,6 +442,16 @@ export function PayoutAccountSheet({
             onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
             placeholder="0123456789"
             inputMode="numeric"
+            // The keyboard's Enter key used to do nothing, and the keyboard
+            // sat over Save. "Done" closes it and brings Save into view, the
+            // usual end of a form's last field.
+            enterKeyHint="done"
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              e.currentTarget.blur();
+              saveRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }}
             className={`w-full text-[17px] border rounded-2xl px-4 py-3.5 outline-none focus:border-sd-ink-faint transition-colors duration-150 ${
               showErrors && !validAccountNumber ? "border-sd-danger-mark/50" : "border-sd-line"
             }`}
@@ -449,34 +461,35 @@ export function PayoutAccountSheet({
           )}
         </div>
 
-        <p className="text-[13px] leading-relaxed text-sd-ink-muted">
+        <p className="text-[13px] leading-relaxed text-sd-ink-muted mb-2">
           Kept private — used only to send your payouts, never shared or shown to buyers.
         </p>
-      </div>
 
-      <div className="px-4 pt-3 oak-safe-bottom border-t border-sd-line bg-sd-surface shrink-0">
-        {saveError && <p className="text-xs text-sd-danger-ink mb-2 text-center">{saveError}</p>}
-        {unverified && (
+        <div className="space-y-2">
+          {saveError && <p className="text-xs text-sd-danger-ink text-center">{saveError}</p>}
+          {unverified && (
+            <button
+              type="button"
+              onClick={() => void handleSave(true)}
+              disabled={saving}
+              className="w-full rounded-full border border-sd-line py-3.5 text-[15px] font-semibold text-sd-ink oak-motion-control active:scale-[0.98] disabled:opacity-50"
+            >
+              Continue anyway
+              <span className="block text-[12px] font-normal text-sd-ink-muted">
+                We&apos;ll verify it before your first payout
+              </span>
+            </button>
+          )}
           <button
+            ref={saveRef}
             type="button"
-            onClick={() => void handleSave(true)}
+            onClick={() => void handleSave()}
             disabled={saving}
-            className="mb-2 w-full rounded-full border border-sd-line py-3.5 text-[15px] font-semibold text-sd-ink oak-motion-control active:scale-[0.98] disabled:opacity-50"
+            className="w-full bg-sd-ink text-sd-bg text-[17px] font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-50"
           >
-            Continue anyway
-            <span className="block text-[12px] font-normal text-sd-ink-muted">
-              We&apos;ll verify it before your first payout
-            </span>
+            {saving ? "Saving…" : "Save payout details"}
           </button>
-        )}
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={saving}
-          className="w-full bg-sd-ink text-sd-bg text-[17px] font-semibold rounded-full py-4 oak-motion-control active:scale-[0.98] disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Save payout details"}
-        </button>
+        </div>
       </div>
     </div>
   );
