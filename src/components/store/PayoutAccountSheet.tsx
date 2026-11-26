@@ -402,7 +402,7 @@ export function PayoutAccountSheet({
             />
           </div>
 
-          <div className="mt-3 max-h-[min(420px,45dvh)] overflow-y-auto border border-sd-line rounded-2xl">
+          <div className="mt-3 max-h-[min(420px,45dvh)] overflow-y-auto border-2 border-sd-line-strong rounded-2xl">
             {visibleBanks.length === 0 ? (
               <p className="px-4 py-8 text-[15px] text-sd-ink-faint text-center">
                 {listOpen ? "No matches — you can still use what you typed." : "No bank selected."}
