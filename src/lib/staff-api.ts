@@ -27,12 +27,15 @@ export function isStaffDemo(): boolean {
   }
 }
 
-/** Trades the demo password for the preview's HttpOnly cookie. */
-export async function unlockStaffDemo(password: string): Promise<boolean> {
+/** Trades the demo password -- or a /<name>/<code>/admin link's name and code
+ *  -- for the preview's HttpOnly cookie. */
+export async function unlockStaffDemo(
+  credentials: string | { who: string; code: string },
+): Promise<boolean> {
   const res = await fetch("/api/staff-demo/unlock", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
+    body: JSON.stringify(typeof credentials === "string" ? { password: credentials } : credentials),
   });
   return res.ok;
 }

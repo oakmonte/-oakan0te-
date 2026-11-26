@@ -10,8 +10,7 @@ import { demoResponse } from "@/lib/staff-demo";
 // SAMPLE DATA ONLY. This never touches the database and has no path into the
 // real /api/staff/* handlers, which keep their own staff_members check.
 //
-// Off unless STAFF_DEMO_PASSWORD is set: set only on the sellers-only-test
-// deploy, so production answers 404 here.
+// Off unless STAFF_DEMO_PASSWORD or STAFF_DEMO_LOGINS is set (see handle()).
 const COOKIE = "oak_staff_demo";
 const MAX_AGE = 60 * 60 * 24 * 7;
 
@@ -37,6 +36,15 @@ function same(a: string, b: string) {
   return diff === 0;
 }
 
+function parseLogins(raw: string): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const pair of raw.split(",")) {
+    const [name, code] = pair.split(":").map((x) => x?.trim() ?? "");
+    if (name && code) map.set(name.toLowerCase(), code);
+  }
+  return map;
+}
+
 function cookieValue(request: Request): string | null {
   const header = request.headers.get("cookie") ?? "";
   for (const part of header.split(";")) {
@@ -47,22 +55,33 @@ function cookieValue(request: Request): string | null {
 }
 
 async function handle(request: Request, splat: string) {
-  const password = process.env.STAFF_DEMO_PASSWORD;
-  if (!password) return json({ error: "Not found" }, 404);
-  const expected = await digest(password);
+  // Two ways in, either may be set: one shared password (STAFF_DEMO_PASSWORD),
+  // and per-person links /<name>/<code>/admin (STAFF_DEMO_LOGINS, written
+  // "diadem:1212,ejiro:1111"). The cookie proves knowledge of the current
+  // config, so changing either variable signs everyone out.
+  const password = process.env.STAFF_DEMO_PASSWORD ?? "";
+  const logins = parseLogins(process.env.STAFF_DEMO_LOGINS ?? "");
+  if (!password && logins.size === 0) return json({ error: "Not found" }, 404);
+  const expected = await digest(`${password}|${process.env.STAFF_DEMO_LOGINS ?? ""}`);
 
   if (splat === "unlock") {
     if (request.method !== "POST") return json({ error: "Not found" }, 404);
-    let given = "";
+    let body: { password?: unknown; who?: unknown; code?: unknown } = {};
     try {
-      const body = (await request.json()) as { password?: unknown };
-      given = typeof body?.password === "string" ? body.password : "";
+      body = ((await request.json()) as typeof body) ?? {};
     } catch {
-      given = "";
+      body = {};
     }
-    if (!given || !same(await digest(given), expected)) {
-      return json({ error: "Wrong password" }, 401);
+    const given = typeof body.password === "string" ? body.password : "";
+    const who = typeof body.who === "string" ? body.who.toLowerCase() : "";
+    const code = typeof body.code === "string" ? body.code : "";
+
+    let ok = false;
+    if (password && given) ok = same(await digest(given), await digest(password));
+    if (!ok && who && code && logins.has(who)) {
+      ok = same(await digest(code), await digest(logins.get(who) as string));
     }
+    if (!ok) return json({ error: "Wrong password" }, 401);
     return json({ ok: true }, 200, {
       "Set-Cookie": `${COOKIE}=${expected}; Path=/api/staff-demo; Max-Age=${MAX_AGE}; HttpOnly; Secure; SameSite=Strict`,
     });

@@ -86,6 +86,7 @@ import { Route as StoreGrowthRouteImport } from './routes/store.growth'
 import { Route as StoreOrdersRouteImport } from './routes/store.orders'
 import { Route as StoreProductsRouteImport } from './routes/store.products'
 import { Route as StoreThemeRouteImport } from './routes/store.theme'
+import { Route as WhoCodeAdminRouteImport } from './routes/$who.$code.admin'
 import { Route as ApiAccountDeleteRouteImport } from './routes/api.account.delete'
 import { Route as ApiBumpaConnectRouteImport } from './routes/api.bumpa.connect'
 import { Route as ApiChatInboxRouteImport } from './routes/api.chat.inbox'
@@ -542,6 +543,11 @@ const StoreThemeRoute = StoreThemeRouteImport.update({
   path: '/theme',
   getParentRoute: () => StoreRoute,
 } as any)
+const WhoCodeAdminRoute = WhoCodeAdminRouteImport.update({
+  id: '/$who/$code/admin',
+  path: '/$who/$code/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAccountDeleteRoute = ApiAccountDeleteRouteImport.update({
   id: '/api/account/delete',
   path: '/api/account/delete',
@@ -974,6 +980,7 @@ export interface FileRoutesByFullPath {
   '/learn/': typeof LearnIndexRoute
   '/staff/': typeof StaffIndexRoute
   '/store/': typeof StoreIndexRoute
+  '/$who/$code/admin': typeof WhoCodeAdminRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
@@ -1118,6 +1125,7 @@ export interface FileRoutesByTo {
   '/learn': typeof LearnIndexRoute
   '/staff': typeof StaffIndexRoute
   '/store': typeof StoreIndexRoute
+  '/$who/$code/admin': typeof WhoCodeAdminRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
@@ -1267,6 +1275,7 @@ export interface FileRoutesById {
   '/learn/': typeof LearnIndexRoute
   '/staff/': typeof StaffIndexRoute
   '/store/': typeof StoreIndexRoute
+  '/$who/$code/admin': typeof WhoCodeAdminRoute
   '/api/account/delete': typeof ApiAccountDeleteRoute
   '/api/bumpa/connect': typeof ApiBumpaConnectRoute
   '/api/chat/inbox': typeof ApiChatInboxRoute
@@ -1417,6 +1426,7 @@ export interface FileRouteTypes {
     | '/learn/'
     | '/staff/'
     | '/store/'
+    | '/$who/$code/admin'
     | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
@@ -1561,6 +1571,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/staff'
     | '/store'
+    | '/$who/$code/admin'
     | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
@@ -1709,6 +1720,7 @@ export interface FileRouteTypes {
     | '/learn/'
     | '/staff/'
     | '/store/'
+    | '/$who/$code/admin'
     | '/api/account/delete'
     | '/api/bumpa/connect'
     | '/api/chat/inbox'
@@ -1838,6 +1850,7 @@ export interface RootRouteChildren {
   ShopStoreUsernameRoute: typeof ShopStoreUsernameRoute
   StoreProfileStoreUsernameRoute: typeof StoreProfileStoreUsernameRoute
   LearnIndexRoute: typeof LearnIndexRoute
+  WhoCodeAdminRoute: typeof WhoCodeAdminRoute
   ApiAccountDeleteRoute: typeof ApiAccountDeleteRoute
   ApiBumpaConnectRoute: typeof ApiBumpaConnectRoute
   ApiChatInboxRoute: typeof ApiChatInboxRoute
@@ -2420,6 +2433,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/store/theme'
       preLoaderRoute: typeof StoreThemeRouteImport
       parentRoute: typeof StoreRoute
+    }
+    '/$who/$code/admin': {
+      id: '/$who/$code/admin'
+      path: '/$who/$code/admin'
+      fullPath: '/$who/$code/admin'
+      preLoaderRoute: typeof WhoCodeAdminRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/account/delete': {
       id: '/api/account/delete'
@@ -3168,6 +3188,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopStoreUsernameRoute: ShopStoreUsernameRoute,
   StoreProfileStoreUsernameRoute: StoreProfileStoreUsernameRoute,
   LearnIndexRoute: LearnIndexRoute,
+  WhoCodeAdminRoute: WhoCodeAdminRoute,
   ApiAccountDeleteRoute: ApiAccountDeleteRoute,
   ApiBumpaConnectRoute: ApiBumpaConnectRoute,
   ApiChatInboxRoute: ApiChatInboxRoute,
