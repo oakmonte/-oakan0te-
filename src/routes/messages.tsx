@@ -637,7 +637,7 @@ export function MessagesView({
                 <Avatar kind="support" name="Oakmonte" size={72} />
                 <p className="mt-5 text-[20px] font-bold">Your messages live here</p>
                 <p className="mt-2 text-[14.5px] text-chat-muted">
-                  Sign in to chat with sellers and buyers, share photos and send voice notes.
+                  Sign in to chat with potential buyers and understand them better.
                 </p>
                 <Link
                   to="/sign-in"
