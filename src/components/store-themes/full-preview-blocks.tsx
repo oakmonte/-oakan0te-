@@ -897,9 +897,8 @@ const DEFAULT_ASPECT_RATIO = 4 / 5;
 const MIN_SLIDESHOW_ASPECT = 0.5;
 const MAX_SLIDESHOW_ASPECT = 1.91;
 
-/** Slideshow / Floating cards: the seller's pick for the hero, in edit mode
- *  only. The regular slideshow is the default -- cards are offered, never
- *  imposed. */
+/** Floating cards / Slideshow: the seller's pick for the hero, in edit mode
+ *  only. Floating cards are the default; the slideshow is the option. */
 function DesktopHeroToggle({
   editing,
   className = "",
@@ -917,8 +916,8 @@ function DesktopHeroToggle({
     >
       {(
         [
-          ["banner", RectangleHorizontal, "Slideshow"],
           ["cards", GalleryHorizontal, "Floating cards"],
+          ["banner", RectangleHorizontal, "Slideshow"],
         ] as const
       ).map(([value, Icon, label]) => (
         <button

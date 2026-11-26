@@ -48,9 +48,9 @@ function splitText(raw: unknown): { text: ThemeTextEdits } & Extras {
   } = (raw ?? {}) as Record<string, unknown>;
   return {
     text: text as ThemeTextEdits,
-    // The regular slideshow unless the seller picked cards: nothing new is
-    // forced on a store.
-    desktopHero: (hero === "cards" ? "cards" : "banner") as DesktopHero,
+    // Floating cards unless the seller picked the slideshow: a store that
+    // saved "banner" keeps it, one that never chose gets the cards.
+    desktopHero: (hero === "banner" ? "banner" : "cards") as DesktopHero,
     columns: columns === 1 ? 1 : 2,
     slideshowCrops: (slideshowCrops ?? {}) as ThemeImageCrops,
     slideshowAspectRatio: typeof ratio === "number" ? ratio : null,

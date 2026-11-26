@@ -109,8 +109,9 @@ export function createInitialEditState(): ThemeEditState {
     hiddenBlocks: [],
     columns: 2,
     stickyBottom: null,
-    // The regular slideshow: floating cards are offered, never imposed.
-    desktopHero: "banner",
+    // Floating cards by default (Diadem, 2026-11-26); the slideshow is the
+    // option.
+    desktopHero: "cards",
   };
 }
 

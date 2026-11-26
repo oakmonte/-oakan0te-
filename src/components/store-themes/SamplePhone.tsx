@@ -21,8 +21,11 @@ import messagesIcon from "@/assets/messages.svg";
  *  chat   -- taps Messages: a buyer asks, the store answers, an offer is agreed;
  *  cards  -- the floating-cards hero, its 3D ring turning, the phone at rest;
  *  float  -- the hero slideshow, the phone drifting with a slight 3D tilt,
- *            now and then tapping Home to show the store's video feed. */
-export type Motion = "chat" | "cards" | "float";
+ *            now and then tapping Home to show the store's video feed;
+ *  tour   -- all three in turn, one phone on its own (the Website tab before
+ *            a store exists): scroll the store, tap Feed and swipe a few
+ *            posts, tap Messages and play the chat, back to Store. */
+export type Motion = "chat" | "cards" | "float" | "tour";
 
 /** Each phone is laid out at a real phone width, then drawn smaller. */
 export const PHONE_W = 390;
@@ -96,22 +99,48 @@ export function PhonePreview({
   // "chat": 4s on the store, tap Messages, then the conversation plays out --
   // the buyer typing each line on the keyboard and sending it, the store's
   // replies after its typing dots -- then tap Store, and again.
+  // "tour" runs the same steps, with the store scroll and the feed first.
   useEffect(() => {
-    if (motion !== "chat") return;
+    if (motion !== "chat" && motion !== "tour") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let cancelled = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const wait = (ms: number) => new Promise<void>((done) => timers.push(setTimeout(done, ms)));
+    const tapTab = async (n: number) => {
+      setNavTap(n);
+      await wait(500);
+      setTab(n);
+      if (n === 1) setPost(0);
+      if (n === 2) setChatStep(0);
+      await wait(500);
+      setNavTap(null);
+    };
 
     const run = async () => {
       while (!cancelled) {
-        await wait(4000);
-        setNavTap(2);
-        await wait(500);
-        setTab(2);
-        setChatStep(0);
-        await wait(500);
-        setNavTap(null);
+        if (motion === "tour") {
+          // The store, scrolled down into the products and back up.
+          const to = (top: number) => scrollerRef.current?.scrollTo({ top, behavior: "smooth" });
+          await wait(3000);
+          for (const top of [PHONE_H * 0.85, PHONE_H * 1.7, PHONE_H * 2.5]) {
+            if (cancelled) return;
+            to(top);
+            await wait(2600);
+          }
+          to(0);
+          await wait(1400);
+          // The feed: a few posts swiped through.
+          await tapTab(1);
+          for (let n = 1; n <= 2 && !cancelled; n++) {
+            await wait(2400);
+            setPost(n);
+          }
+          await wait(2400);
+        } else {
+          await wait(4000);
+        }
+        if (cancelled) return;
+        await tapTab(2);
         await wait(500);
         for (let i = 0; i < CHAT.length && !cancelled; i++) {
           const m = CHAT[i];
@@ -133,11 +162,7 @@ export function PhonePreview({
           await wait(900);
         }
         await wait(2000);
-        setNavTap(0);
-        await wait(500);
-        setTab(0);
-        await wait(500);
-        setNavTap(null);
+        await tapTab(0);
       }
     };
     void run();
@@ -232,7 +257,7 @@ export function PhonePreview({
 
         {/* The store's Messages (the third tab): a buyer's chat with the store,
           a bubble at a time, ending in an agreed offer. */}
-        {motion === "chat" && (
+        {(motion === "chat" || motion === "tour") && (
           <div
             className="pointer-events-none absolute inset-0 z-30 flex flex-col bg-black text-white transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
             style={{ transform: tab === 2 ? "translateX(0)" : "translateX(100%)" }}
@@ -356,7 +381,7 @@ export function PhonePreview({
 
         {/* The store's video feed (the Home tab): full-screen posts, swiped up one
           after another, with the linked-product rail and the feed's own tabs. */}
-        {motion === "float" && (
+        {(motion === "float" || motion === "tour") && (
           <div
             className="pointer-events-none absolute inset-0 z-30 overflow-hidden bg-black transition-opacity duration-300"
             style={{ opacity: tab === 1 ? 1 : 0 }}

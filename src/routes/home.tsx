@@ -86,9 +86,9 @@ function HomePage() {
  *  it's a preview and what to do next (sign in, or finish setting up).
  *
  *  Nothing new here: Phone is the showcase's phone (the store / feed /
- *  messages bar every website carries, the page scrolling down into the
- *  products), and Desktop is the theme editor's shrunk laptop view -- a
- *  storefront laid out at a laptop width, then scaled down to fit. */
+ *  messages bar every website carries, touring all three in turn), and
+ *  Desktop is the theme editor's shrunk laptop view -- a storefront laid out
+ *  at a laptop width, then scaled down to fit. */
 function SampleStorefront({
   brandName,
   title,
@@ -171,12 +171,13 @@ function SampleStorefront({
       {vw > 0 && (
         <div className="mt-5" aria-label="Sample storefront">
           {shown === "phone" ? (
-            // The showcase phone animates itself and takes no taps.
+            // The showcase phone tours store, feed and messages on its own and takes
+            // no taps.
             <PhonePreview
               themeId="motion"
               brandName={brandName}
               scale={phoneScale}
-              motion="cards"
+              motion="tour"
               hero="cards"
               drift={false}
             />
