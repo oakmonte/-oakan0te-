@@ -39,7 +39,12 @@ type Extras = Pick<
 
 function splitText(raw: unknown): { text: ThemeTextEdits } & Extras {
   const {
-    _desktopHero: hero,
+    // _desktopHero is the old key: until 2026-11-26 every save wrote
+    // "banner" there whether the seller chose it or not (the slideshow was
+    // the default), so it says nothing about what they want. Read off and
+    // dropped; the pick lives in _hero now.
+    _desktopHero: _oldHero,
+    _hero: hero,
     _columns: columns,
     _slideshowCrops: slideshowCrops,
     _slideshowAspectRatio: ratio,
@@ -48,8 +53,7 @@ function splitText(raw: unknown): { text: ThemeTextEdits } & Extras {
   } = (raw ?? {}) as Record<string, unknown>;
   return {
     text: text as ThemeTextEdits,
-    // Floating cards unless the seller picked the slideshow: a store that
-    // saved "banner" keeps it, one that never chose gets the cards.
+    // Floating cards unless the seller picked the slideshow.
     desktopHero: (hero === "banner" ? "banner" : "cards") as DesktopHero,
     columns: columns === 1 ? 1 : 2,
     slideshowCrops: (slideshowCrops ?? {}) as ThemeImageCrops,
@@ -61,7 +65,7 @@ function splitText(raw: unknown): { text: ThemeTextEdits } & Extras {
 function joinText(state: ThemeEditState) {
   return {
     ...state.text,
-    _desktopHero: state.desktopHero,
+    _hero: state.desktopHero,
     _columns: state.columns,
     _slideshowCrops: state.slideshowCrops,
     _slideshowAspectRatio: state.slideshowAspectRatio,

@@ -1278,8 +1278,9 @@ function HeroSlideshowInner({
     e.target.value = "";
   }
 
-  // The seller's pick; the regular slideshow unless they chose cards.
-  const cards = editing?.desktopHero === "cards";
+  // The seller's pick: floating cards unless they chose the slideshow. A
+  // preview with no settings at all (the theme picker's cards) gets the cards.
+  const cards = editing?.desktopHero !== "banner";
 
   // Cards draw their own empty state (the "Add photos" card, with the
   // headline fields and the style toggle still there).
