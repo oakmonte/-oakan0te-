@@ -159,7 +159,10 @@ function ShowcasePage() {
     const theme = THEMES.find((t) => t.id === look.id);
     return theme ? [{ ...look, theme }] : [];
   });
-  const fan = vw > 0 && vw < FAN_BELOW;
+  // Portrait screens fan too, whatever their width. Width alone put every
+  // iPad held upright (820-1024px) in the row layout: three half-size phones
+  // across the middle of a screen far taller than it is wide.
+  const fan = vw > 0 && (vw < FAN_BELOW || vh > vw);
   // A row: all three fit across the screen. A fan: one phone's size, with the
   // other two tucked behind it.
   // The fan spans about FAN_SPAN phone-widths (the side phones, their tilt and
@@ -176,8 +179,8 @@ function ShowcasePage() {
   // Below that the page scrolls a little instead. Width always wins, so a
   // narrow screen never overflows sideways.
   const byWidth = fan
-    ? Math.min(0.65, (vw - 40) / (PHONE_W * FAN_SPAN))
-    : Math.min(0.5, (vw - 96 - GAP * 2) / (PHONE_W * 3));
+    ? Math.min(0.85, (vw - 40) / (PHONE_W * FAN_SPAN))
+    : Math.min(0.8, (vw - 96 - GAP * 2) / (PHONE_W * 3));
   const scale = Math.min(byWidth, Math.max(MIN_HEIGHT_SCALE, heightFit));
   const phoneW = PHONE_W * scale;
 
