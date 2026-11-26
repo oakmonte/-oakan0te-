@@ -11,11 +11,12 @@ export class StaffApiError extends Error {
   }
 }
 
-/** Sample-data preview on localhost (`/staff?demo=1`, remembered for the tab).
- *  `import.meta.env.DEV` is false in a production build, so this is always
- *  false there and the demo module is never bundled. */
+/** Sample-data preview: `/staff?demo=1`, remembered for the tab. On localhost
+ *  the data comes from staff-demo.ts directly; on a deploy it comes from
+ *  /api/staff-demo/*, behind STAFF_DEMO_PASSWORD (set on the test deploy only).
+ *  Either way it is sample data and never reaches the real /api/staff/*. */
 export function isStaffDemo(): boolean {
-  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  if (typeof window === "undefined") return false;
   try {
     if (new URLSearchParams(window.location.search).has("demo")) {
       sessionStorage.setItem("staff-demo", "1");
@@ -24,6 +25,16 @@ export function isStaffDemo(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Trades the demo password for the preview's HttpOnly cookie. */
+export async function unlockStaffDemo(password: string): Promise<boolean> {
+  const res = await fetch("/api/staff-demo/unlock", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  return res.ok;
 }
 
 /** Calls an /api/staff/* route with the session attached. Throws
@@ -35,11 +46,15 @@ export async function staffApi<T>(path: string, init?: { method?: string; body?:
     const { demoResponse } = await import("@/lib/staff-demo");
     return demoResponse(path, init) as T;
   }
-  const res = await authedFetch(path, {
+  const request: RequestInit = {
     method: init?.method ?? "GET",
     headers: init?.body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
-  });
+  };
+  // The demo rides its own cookie; the session token isn't sent there.
+  const res = isStaffDemo()
+    ? await fetch(path.replace(/^\/api\/staff\//, "/api/staff-demo/"), request)
+    : await authedFetch(path, request);
   const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
   if (!res.ok) {
     throw new StaffApiError(

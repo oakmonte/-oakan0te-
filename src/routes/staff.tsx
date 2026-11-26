@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useSession } from "@/hooks/use-session";
-import { isStaffDemo, staffApi } from "@/lib/staff-api";
+import { isStaffDemo, StaffApiError, staffApi, unlockStaffDemo } from "@/lib/staff-api";
 
 // The staff back-office shell. Whether to show it is decided by
 // /api/staff/me, which checks public.staff_members server-side -- but that
@@ -25,7 +25,8 @@ const TABS = [
 function StaffLayout() {
   const { session, loading } = useSession();
   const [me, setMe] = useState<Me | null>(null);
-  const [state, setState] = useState<"checking" | "ok" | "denied">("checking");
+  const [state, setState] = useState<"checking" | "ok" | "denied" | "locked">("checking");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (loading) return;
@@ -40,16 +41,30 @@ function StaffLayout() {
         setMe(data);
         setState("ok");
       })
-      .catch(() => {
-        if (!cancelled) setState("denied");
+      .catch((err) => {
+        if (cancelled) return;
+        // The sample-data preview answers 401 until its password is entered.
+        const locked = isStaffDemo() && err instanceof StaffApiError && err.status === 401;
+        setState(locked ? "locked" : "denied");
       });
     return () => {
       cancelled = true;
     };
-  }, [loading, session]);
+  }, [loading, session, attempt]);
 
   if (state === "checking") {
     return <div className="min-h-dvh bg-neutral-50" aria-busy="true" />;
+  }
+
+  if (state === "locked") {
+    return (
+      <DemoPassword
+        onUnlocked={() => {
+          setState("checking");
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
   }
 
   if (state === "denied") {
@@ -92,6 +107,62 @@ function StaffLayout() {
       <main className="mx-auto max-w-5xl px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <Outlet />
       </main>
+    </div>
+  );
+}
+
+/** The password screen for the sample-data preview (see api.staff-demo.$.ts).
+ *  The password is checked on the server, which sets an HttpOnly cookie. */
+function DemoPassword({ onUnlocked }: { onUnlocked: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!password || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (await unlockStaffDemo(password)) onUnlocked();
+      else setError("That password isn't right.");
+    } catch {
+      setError("Couldn't check the password. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-neutral-50 px-6 text-neutral-900">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-sm space-y-3 rounded-xl border border-neutral-200 bg-white p-6"
+      >
+        <h1 className="text-lg font-semibold">Oakmonte staff preview</h1>
+        <p className="text-sm text-neutral-600">Sample data only. Enter the preview password.</p>
+        <input
+          type="password"
+          autoFocus
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base focus:border-neutral-900 focus:outline-none"
+          aria-label="Preview password"
+        />
+        {error ? (
+          <p role="alert" className="text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          disabled={busy || !password}
+          className="w-full rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+        >
+          {busy ? "Checking…" : "Open"}
+        </button>
+      </form>
     </div>
   );
 }

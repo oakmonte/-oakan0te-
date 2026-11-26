@@ -111,6 +111,7 @@ import { Route as ApiShippingRatesRouteImport } from './routes/api.shipping.rate
 import { Route as ApiShippingReverseGeocodeRouteImport } from './routes/api.shipping.reverse-geocode'
 import { Route as ApiShopifyCallbackRouteImport } from './routes/api.shopify.callback'
 import { Route as ApiShopifyInstallRouteImport } from './routes/api.shopify.install'
+import { Route as ApiStaffDemoSplatRouteImport } from './routes/api.staff-demo.$'
 import { Route as ApiStaffInboxRouteImport } from './routes/api.staff.inbox'
 import { Route as ApiStaffMeRouteImport } from './routes/api.staff.me'
 import { Route as ApiStaffOpenAsRouteImport } from './routes/api.staff.open-as'
@@ -667,6 +668,11 @@ const ApiShopifyInstallRoute = ApiShopifyInstallRouteImport.update({
   path: '/api/shopify/install',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStaffDemoSplatRoute = ApiStaffDemoSplatRouteImport.update({
+  id: '/api/staff-demo/$',
+  path: '/api/staff-demo/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStaffInboxRoute = ApiStaffInboxRouteImport.update({
   id: '/api/staff/inbox',
   path: '/api/staff/inbox',
@@ -993,6 +999,7 @@ export interface FileRoutesByFullPath {
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/staff-demo/$': typeof ApiStaffDemoSplatRoute
   '/api/staff/inbox': typeof ApiStaffInboxRoute
   '/api/staff/me': typeof ApiStaffMeRoute
   '/api/staff/open-as': typeof ApiStaffOpenAsRoute
@@ -1136,6 +1143,7 @@ export interface FileRoutesByTo {
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/staff-demo/$': typeof ApiStaffDemoSplatRoute
   '/api/staff/inbox': typeof ApiStaffInboxRoute
   '/api/staff/me': typeof ApiStaffMeRoute
   '/api/staff/open-as': typeof ApiStaffOpenAsRoute
@@ -1284,6 +1292,7 @@ export interface FileRoutesById {
   '/api/shipping/reverse-geocode': typeof ApiShippingReverseGeocodeRoute
   '/api/shopify/callback': typeof ApiShopifyCallbackRoute
   '/api/shopify/install': typeof ApiShopifyInstallRoute
+  '/api/staff-demo/$': typeof ApiStaffDemoSplatRoute
   '/api/staff/inbox': typeof ApiStaffInboxRoute
   '/api/staff/me': typeof ApiStaffMeRoute
   '/api/staff/open-as': typeof ApiStaffOpenAsRoute
@@ -1433,6 +1442,7 @@ export interface FileRouteTypes {
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/staff-demo/$'
     | '/api/staff/inbox'
     | '/api/staff/me'
     | '/api/staff/open-as'
@@ -1576,6 +1586,7 @@ export interface FileRouteTypes {
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/staff-demo/$'
     | '/api/staff/inbox'
     | '/api/staff/me'
     | '/api/staff/open-as'
@@ -1723,6 +1734,7 @@ export interface FileRouteTypes {
     | '/api/shipping/reverse-geocode'
     | '/api/shopify/callback'
     | '/api/shopify/install'
+    | '/api/staff-demo/$'
     | '/api/staff/inbox'
     | '/api/staff/me'
     | '/api/staff/open-as'
@@ -1848,6 +1860,7 @@ export interface RootRouteChildren {
   ApiShippingReverseGeocodeRoute: typeof ApiShippingReverseGeocodeRoute
   ApiShopifyCallbackRoute: typeof ApiShopifyCallbackRoute
   ApiShopifyInstallRoute: typeof ApiShopifyInstallRoute
+  ApiStaffDemoSplatRoute: typeof ApiStaffDemoSplatRoute
   ApiStaffInboxRoute: typeof ApiStaffInboxRoute
   ApiStaffMeRoute: typeof ApiStaffMeRoute
   ApiStaffOpenAsRoute: typeof ApiStaffOpenAsRoute
@@ -2583,6 +2596,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShopifyInstallRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/staff-demo/$': {
+      id: '/api/staff-demo/$'
+      path: '/api/staff-demo/$'
+      fullPath: '/api/staff-demo/$'
+      preLoaderRoute: typeof ApiStaffDemoSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/staff/inbox': {
       id: '/api/staff/inbox'
       path: '/api/staff/inbox'
@@ -3170,6 +3190,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShippingReverseGeocodeRoute: ApiShippingReverseGeocodeRoute,
   ApiShopifyCallbackRoute: ApiShopifyCallbackRoute,
   ApiShopifyInstallRoute: ApiShopifyInstallRoute,
+  ApiStaffDemoSplatRoute: ApiStaffDemoSplatRoute,
   ApiStaffInboxRoute: ApiStaffInboxRoute,
   ApiStaffMeRoute: ApiStaffMeRoute,
   ApiStaffOpenAsRoute: ApiStaffOpenAsRoute,
