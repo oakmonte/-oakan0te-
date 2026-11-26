@@ -183,7 +183,7 @@ export function useStoreSetupStatus(storeId: string | null): StoreSetupStatus {
     // mean "not my store, don't look" isn't still charged an authed round trip.
     if (!storeId) return;
     let cancelled = false;
-    authedFetch("/api/store/payout")
+    authedFetch(`/api/store/payout?storeId=${encodeURIComponent(storeId)}`)
       .then((res) => {
         // A 401 or 500 carries a JSON body with no `account` in it, which read
         // straight through as "no payout account" -- dropping a finished

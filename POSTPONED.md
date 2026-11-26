@@ -51,9 +51,10 @@ ledger in `payout_ledger`, the row id is the transfer reference). Bank accounts 
 with Paystack on save (`api.store.payout.ts`: name filled in, status "verified"). Before going
 live: enable Transfers on the Paystack account, turn off OTP for API transfers, keep a balance
 to pay from, and point the Paystack webhook at `/api/paystack/webhook` (it also receives the
-transfer results). Open: delivery is only confirmed by Shipbubble's "completed" webhook, so
-pickup and flat-rate orders have no way to release a payout yet; failed transfers stay "owed"
-with a note and need a manual retry.
+transfer results). Delivery is confirmed three ways (`lib/delivery-release.server.ts`): Shipbubble's
+"completed" webhook, the buyer's "I've received it", or the daily auto-release cron
+(`api.cron.release-payouts`, in `vercel.json`) -- so seller-delivered, pickup and flat-rate
+orders release too. Open: failed transfers stay "owed" with a note and need a manual retry.
 
 ### 1.4 Direct messages · applied, follow-ups open
 
@@ -170,16 +171,6 @@ side by side until someone picks this up.
 
 Standard for a Supabase SPA. Moving to httpOnly cookies means an SSR cookie-auth rewrite
 across every route — not worth it before launch, worth knowing.
-
-### 3.3 `payoutSet` answers for the wrong store when a seller has two
-
-`use-store-setup-status.ts`'s payout signal comes from `/api/store/payout`, which resolves to
-the seller's _oldest_ store (`requireOwnStore`) while the hook's other signals are scoped to
-whichever store is _active_. A two-store seller's checklist can show store A's payout account
-as store B's. Harmless today — `stores` has no unique constraint on `owner_id`, so two-store
-sellers are possible but rare. Fix: pass the active `storeId` and switch the handler to
-`requireStoreAccess`. Touches an `api.*` route and server auth — wants a review, not a
-drive-by.
 
 ### 3.5 Staff back-office (`/staff`) · applied 2026-11-09
 

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin as supabase } from "@/lib/integrations/my-supabase/client.server";
-import { requireOwnStore } from "@/lib/server-auth";
+import { requireOwnStore, requireStoreOwner } from "@/lib/server-auth";
 import { bankCodeFor, paystackConfigured, resolveAccountName } from "@/lib/paystack.server";
 
 // Responses carry a bank account number. Keep them out of the browser's disk
@@ -27,13 +27,22 @@ function privateJson(body: unknown, init?: ResponseInit) {
 // query string with no session check at all, which meant anyone who could
 // guess or enumerate a store id could read that seller's bank account number
 // over GET, and overwrite it over POST — i.e. redirect their payouts. The
-// store is now derived from the caller's own session and any client-supplied
-// id is ignored, so there is no id left to tamper with.
+// store is now derived from the caller's own session.
+//
+// A seller with two stores names which one (`?storeId=`), and that id is
+// checked against the caller's own stores (requireStoreOwner: someone else's
+// id is a 404) -- without it every store's checklist and finance page read the
+// OLDEST store's account. No id falls back to that oldest store, as before.
+function storeFor(request: Request) {
+  const storeId = new URL(request.url).searchParams.get("storeId");
+  return storeId ? requireStoreOwner(request, storeId) : requireOwnStore(request);
+}
+
 export const Route = createFileRoute("/api/store/payout")({
   server: {
     handlers: {
       GET: async ({ request }: { request: Request }) => {
-        const auth = await requireOwnStore(request);
+        const auth = await storeFor(request);
         // A signed-in user with no store yet is a normal state for the
         // dashboard, not an error — return an empty account rather than a 403.
         if (!auth.ok) {
@@ -80,7 +89,7 @@ export const Route = createFileRoute("/api/store/payout")({
         return privateJson({ account: data });
       },
       POST: async ({ request }: { request: Request }) => {
-        const auth = await requireOwnStore(request);
+        const auth = await storeFor(request);
         if (!auth.ok) return auth.response;
 
         let body: {

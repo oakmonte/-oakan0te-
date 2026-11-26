@@ -41,9 +41,14 @@ function FinancePage() {
   const { storeId } = useActiveStoreId();
   const [nextBusy, setNextBusy] = useState(false);
 
+  // The active store's account, not the seller's oldest store's.
+  const payoutUrl = storeId
+    ? `/api/store/payout?storeId=${encodeURIComponent(storeId)}`
+    : "/api/store/payout";
+
   useEffect(() => {
     let cancelled = false;
-    authedFetch("/api/store/payout")
+    authedFetch(payoutUrl)
       .then((res) => res.json())
       .then((body) => {
         if (!cancelled) setAccount(body.account ?? null);
@@ -58,7 +63,7 @@ function FinancePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [payoutUrl]);
 
   // No account yet: skip quietly. Bank details only matter once there is an
   // order to pay out, and sellers come back for them then -- an "Add a payout
@@ -116,7 +121,7 @@ function FinancePage() {
   }
 
   async function handleSave(values: { bankName: string; accountNumber: string; force?: boolean }) {
-    const res = await authedFetch("/api/store/payout", {
+    const res = await authedFetch(payoutUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(values),
