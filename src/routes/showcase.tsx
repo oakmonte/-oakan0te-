@@ -3,12 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useActiveStore } from "@/hooks/use-own-store";
 import { FullPreview } from "@/components/store-themes/full-previews";
 import { THEMES, type ThemeId } from "@/components/store-themes/types";
-import {
-  createInitialEditState,
-  type DesktopHero,
-  type ThemeEditingProps,
-} from "@/components/store-themes/edit-types";
-import { HERO_SLIDESHOW_IMAGES } from "@/components/store-themes/hero-placeholders";
+import { type DesktopHero } from "@/components/store-themes/edit-types";
+import { viewOnly } from "@/components/store-themes/view-only";
 import { GLASS_RIM, glassLens, glassLight } from "@/lib/liquid-glass";
 import { clearShowcase } from "@/lib/showcase-handoff";
 import { Share2, ShoppingBag } from "lucide-react";
@@ -60,8 +56,6 @@ const FAN_SPAN = 2.98;
 const CHROME_H = 330;
 const MIN_HEIGHT_SCALE = 0.3;
 
-const noop = () => {};
-
 /** The feed demo's posts: a caption and the piece each one links. */
 const FEED_POSTS = [
   {
@@ -95,43 +89,6 @@ const CHAT: { from: "buyer" | "store"; text?: string; offer?: string; list?: str
   { from: "buyer", offer: "₦38,000", list: "₦45,000" },
   { from: "store", text: "Deal! Tap Buy whenever you're ready." },
 ];
-
-/** View-only storefront settings, like the live storefront builds: the
- *  theme's placeholder photos, and which hero to show. */
-function viewOnly(hero: DesktopHero): ThemeEditingProps {
-  const s = createInitialEditState();
-  return {
-    isEditing: false,
-    logoMode: s.logoMode,
-    onLogoModeChange: noop,
-    logoImage: s.logoImage,
-    onLogoChange: noop,
-    slideshowImages: HERO_SLIDESHOW_IMAGES,
-    onAddSlideshowImages: noop,
-    onRemoveSlideshowImage: noop,
-    onClearSlideshow: noop,
-    slideshowCrops: s.slideshowCrops,
-    onSlideshowCropChange: noop,
-    slideshowAspectRatio: s.slideshowAspectRatio,
-    onSlideshowAspectRatioChange: noop,
-    tileCrops: s.tileCrops,
-    onTileCropChange: noop,
-    text: s.text,
-    onTextChange: noop,
-    textFonts: s.textFonts,
-    onTextFontChange: noop,
-    hiddenBlocks: s.hiddenBlocks,
-    onRemoveBlock: noop,
-    onRestoreBlock: noop,
-    layoutId: s.layoutId,
-    onLayoutChange: noop,
-    columns: s.columns,
-    onColumnsChange: noop,
-    onTileTapBlocked: noop,
-    stickyBottom: s.stickyBottom,
-    desktopHero: hero,
-  };
-}
 
 function ShowcasePage() {
   const { store } = useActiveStore();
